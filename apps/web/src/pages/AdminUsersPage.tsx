@@ -64,11 +64,18 @@ export function AdminUsersPage({ token, me }: { token: string; me: { role: strin
               <div className="row" style={{ justifyContent: 'space-between' }}>
                 <span>{u.email} · {u.role} · {u.active ? 'active' : 'inactive'}</span>
                 <div className="row">
-                  <button onClick={() => {
-                    const next = prompt('New role (athlete|trainer|admin):', u.role)
-                    if (!next || !['athlete', 'trainer', 'admin'].includes(next)) return
-                    void api.patchUser(token, u.id, { role: next as 'athlete' | 'trainer' | 'admin' }).then(load).catch((e: unknown) => setErr(errorMessage(e)))
-                  }}>Role</button>
+                  <select
+                    aria-label={`Role for ${u.email}`}
+                    value={u.role}
+                    onChange={(e) => {
+                      const next = e.target.value as 'athlete' | 'trainer' | 'admin'
+                      void api.patchUser(token, u.id, { role: next }).then(load).catch((e: unknown) => setErr(errorMessage(e)))
+                    }}
+                  >
+                    <option value="athlete">athlete</option>
+                    <option value="trainer">trainer</option>
+                    <option value="admin">admin</option>
+                  </select>
                   <button onClick={() => {
                     void api.patchUser(token, u.id, { active: !u.active }).then(load).catch((e: unknown) => setErr(errorMessage(e)))
                   }}>{u.active ? 'Deactivate' : 'Activate'}</button>
