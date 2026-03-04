@@ -9,7 +9,7 @@ from app.core.errors import AppError
 from app.core.permissions import ensure_self_or_assigned
 from app.models.schedule import ScheduledWorkout
 from app.models.user import User
-from app.schemas.schedule import MoveCopyPayload, ScheduledCreate, ScheduledOut
+from app.schemas.schedule import MoveCopyPayload, ScheduledCreate, ScheduledOut, ScheduledPatternCreate
 from app.services import calendar_service, schedule_service
 
 router = APIRouter()
@@ -66,6 +66,28 @@ def move_scheduled(
     if not moved:
         raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
     return schedule_service.as_dict(moved)
+
+
+@router.post('/pattern', response_model=list[ScheduledOut])
+def create_scheduled_pattern(
+    payload: ScheduledPatternCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    ensure_self_or_assigned(db, current_user, payload.athlete_id)
+    rows = schedule_service.create_scheduled_pattern(
+        db,
+        athlete_id=payload.athlete_id,
+        template_id=payload.template_id,
+        start_date=payload.start_date,
+        end_date=payload.end_date,
+        pattern_type=payload.pattern_type,
+        interval_days=payload.interval_days,
+        weekday=payload.weekday,
+    )
+    if rows is None:
+        raise AppError(code='template_not_found', message='Template not found', status_code=404)
+    return [schedule_service.as_dict(r) for r in rows]
 
 
 @router.post('/{scheduled_id}/skip', response_model=ScheduledOut)

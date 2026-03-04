@@ -27,6 +27,11 @@ function toEditable(t: Template): EditableTemplate {
 export function TemplatesPage({ token }: { token: string }) {
   const [items, setItems] = useState<Template[]>([])
   const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([])
+
+  const exerciseNameById = exerciseOptions.reduce<Record<string, string>>((acc, e) => {
+    acc[e.id] = e.name
+    return acc
+  }, {})
   const [name, setName] = useState('')
   const [notes, setNotes] = useState('')
   const [err, setErr] = useState<string | null>(null)
@@ -98,6 +103,7 @@ export function TemplatesPage({ token }: { token: string }) {
 
       <TemplateListCard
         items={items}
+        exerciseNameById={exerciseNameById}
         onEdit={id => {
           const t = items.find(x => x.id === id)
           if (t) setEditing(toEditable(t))

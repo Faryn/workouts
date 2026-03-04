@@ -161,3 +161,32 @@ def test_schedule_denies_other_athlete_write(client, seeded_user, db_session):
         'date': '2026-03-05'
     }, headers=headers)
     assert denied.status_code == 403
+
+
+def test_schedule_pattern_interval_and_weekday(client, seeded_user):
+    headers = _auth(client, seeded_user.email, 'secret123')
+    t = client.post('/v1/templates/', json={'name': 'Pattern A'}, headers=headers).json()
+
+    interval = client.post('/v1/scheduled-workouts/pattern', json={
+        'athlete_id': seeded_user.id,
+        'template_id': t['id'],
+        'start_date': '2026-03-01',
+        'end_date': '2026-03-07',
+        'pattern_type': 'interval_days',
+        'interval_days': 2,
+    }, headers=headers)
+    assert interval.status_code == 200
+    interval_dates = [x['date'] for x in interval.json()]
+    assert interval_dates == ['2026-03-01', '2026-03-03', '2026-03-05', '2026-03-07']
+
+    weekday = client.post('/v1/scheduled-workouts/pattern', json={
+        'athlete_id': seeded_user.id,
+        'template_id': t['id'],
+        'start_date': '2026-03-01',
+        'end_date': '2026-03-20',
+        'pattern_type': 'weekday',
+        'weekday': 'tuesday',
+    }, headers=headers)
+    assert weekday.status_code == 200
+    weekday_dates = [x['date'] for x in weekday.json()]
+    assert weekday_dates == ['2026-03-03', '2026-03-10', '2026-03-17']

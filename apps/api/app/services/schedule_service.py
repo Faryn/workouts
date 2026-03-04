@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -62,3 +62,56 @@ def mark_skipped(db: Session, scheduled_id: str) -> ScheduledWorkout | None:
         return None
     row.status = 'skipped'
     return schedule_repo.save(db, row)
+
+
+def create_scheduled_pattern(
+    db: Session,
+    athlete_id: str,
+    template_id: str,
+    start_date: date,
+    end_date: date,
+    pattern_type: str,
+    interval_days: int | None,
+    weekday: str | None,
+) -> list[ScheduledWorkout] | None:
+    template = db.get(WorkoutTemplate, template_id)
+    if not template:
+        return None
+    if end_date < start_date:
+        return []
+
+    out: list[ScheduledWorkout] = []
+
+    if pattern_type == 'interval_days':
+        if not interval_days or interval_days < 1:
+            return []
+        d = start_date
+        while d <= end_date:
+            out.append(schedule_repo.create(db, athlete_id, template_id, d))
+            d = d + timedelta(days=interval_days)
+        return out
+
+    if pattern_type == 'weekday':
+        weekday_map = {
+            'monday': 0,
+            'tuesday': 1,
+            'wednesday': 2,
+            'thursday': 3,
+            'friday': 4,
+            'saturday': 5,
+            'sunday': 6,
+        }
+        if not weekday:
+            return []
+        target = weekday_map.get(weekday.strip().lower())
+        if target is None:
+            return []
+
+        d = start_date
+        while d <= end_date:
+            if d.weekday() == target:
+                out.append(schedule_repo.create(db, athlete_id, template_id, d))
+            d = d + timedelta(days=1)
+        return out
+
+    return []
