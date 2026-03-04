@@ -11,6 +11,10 @@ def ensure_role(user: User, *roles: str) -> None:
 
 
 def ensure_self_or_assigned(db: Session, actor: User, athlete_id: str) -> None:
+    token_athlete_ids = getattr(actor, "_token_athlete_ids", None)
+    if token_athlete_ids is not None and athlete_id not in token_athlete_ids:
+        raise AppError(code="token_scope_forbidden", message="Token does not allow access to athlete", status_code=403)
+
     if actor.role == "admin":
         return
     if actor.role == "athlete":

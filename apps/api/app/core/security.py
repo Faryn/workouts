@@ -15,6 +15,9 @@ def verify_password(password: str, hashed: str) -> bool:
     return pwd_context.verify(password, hashed)
 
 
-def create_access_token(subject: str, minutes: int = 60) -> str:
+def create_access_token(subject: str, minutes: int = 60, claims: dict | None = None) -> str:
     exp = datetime.now(timezone.utc) + timedelta(minutes=minutes)
-    return jwt.encode({"sub": subject, "exp": exp}, settings.api_token_secret, algorithm=ALGORITHM)
+    payload = {"sub": subject, "exp": exp}
+    if claims:
+        payload.update(claims)
+    return jwt.encode(payload, settings.api_token_secret, algorithm=ALGORITHM)

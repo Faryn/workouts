@@ -113,6 +113,18 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    if (!session || session.status !== 'in_progress') return
+
+    const id = window.setInterval(() => {
+      void api.autosaveSession(token, session.id).catch(() => {
+        // silent background autosave; interactive actions still surface errors
+      })
+    }, 15000)
+
+    return () => window.clearInterval(id)
+  }, [session, token])
+
   async function startFromTemplate() {
     setErr(null)
     try {

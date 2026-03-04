@@ -30,4 +30,15 @@ def get_current_user(
     user = db.get(User, user_id)
     if not user or not user.active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+
+    token_role = payload.get("role")
+    if token_role and token_role != user.role:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token role mismatch")
+
+    athlete_ids = payload.get("athlete_ids")
+    if athlete_ids is not None and not isinstance(athlete_ids, list):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token athlete scope")
+
+    # attach decoded token context for downstream permission checks
+    user._token_athlete_ids = set(athlete_ids) if athlete_ids is not None else None
     return user

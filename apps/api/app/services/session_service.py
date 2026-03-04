@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -40,6 +40,10 @@ def serialize_session(db: Session, ws) -> dict:
         "athlete_id": ws.athlete_id,
         "scheduled_workout_id": ws.scheduled_workout_id,
         "status": ws.status,
+        "notes": ws.notes,
+        "started_at": ws.started_at.isoformat() if ws.started_at else None,
+        "ended_at": ws.ended_at.isoformat() if ws.ended_at else None,
+        "last_saved_at": ws.last_saved_at.isoformat() if ws.last_saved_at else None,
         "logged_exercises": out_ex,
     }
 
@@ -122,6 +126,7 @@ def upsert_set(
     ls.actual_reps = actual_reps
     ls.status = status
     ls.notes = notes
+    ws.last_saved_at = datetime.now(timezone.utc)
     session_repo.commit(db)
     db.refresh(ls)
     return serialize_set(ls)
@@ -162,6 +167,26 @@ def latest_in_progress_session(db: Session, current_user: User, athlete_id: str)
     if not ws:
         return None
     return serialize_session(db, ws)
+
+
+def autosave_session(db: Session, current_user: User, session_id: str, notes: str | None = None) -> dict:
+    ws = session_repo.get_session(db, session_id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if ws.athlete_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    ws.last_saved_at = datetime.now(timezone.utc)
+    if notes is not None:
+        ws.notes = notes
+    session_repo.commit(db)
+    db.refresh(ws)
+    return {
+        "id": ws.id,
+        "status": ws.status,
+        "notes": ws.notes,
+        "last_saved_at": ws.last_saved_at.isoformat() if ws.last_saved_at else None,
+    }
 
 
 def finish_session(db: Session, current_user: User, session_id: str) -> dict:

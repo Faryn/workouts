@@ -9,3 +9,33 @@ a { color: #93c5fd; text-decoration: none; }
 .small { opacity: 0.8; font-size: 0.9rem; }
 h1,h2,h3 { margin-top: 0; }
 ul { margin: 0; padding-left: 18px; }
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: #0b1220;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.suggestion-item {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid #1f2937;
+  border-radius: 0;
+  background: transparent;
+  padding: 8px 10px;
+}
+
+.suggestion-item:hover { background: #111827; }
+
+.suggestion-create {
+  color: #93c5fd;
+  font-weight: 600;
+}

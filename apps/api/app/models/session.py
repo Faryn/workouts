@@ -14,6 +14,7 @@ class WorkoutSession(Base):
     ended_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     notes: Mapped[str | None] = mapped_column(String, nullable=True)
+    last_saved_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     status: Mapped[str] = mapped_column(Enum("in_progress", "completed", "abandoned", name="session_status"), default="in_progress")
 
 

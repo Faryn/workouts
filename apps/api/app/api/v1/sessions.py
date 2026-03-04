@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.core.db import get_db
 from app.models.user import User
-from app.schemas.session import LogSetPayload, LoggedSetOut, SessionOut, SessionStartPayload
+from app.schemas.session import LogSetPayload, LoggedSetOut, SessionAutosavePayload, SessionOut, SessionStartPayload
 from app.services import session_service
 
 router = APIRouter()
@@ -53,6 +53,16 @@ def upsert_set(session_id: str, payload: LogSetPayload, db: Session = Depends(ge
         notes=payload.notes,
     )
     return data
+
+
+@router.post('/{session_id}/autosave')
+def autosave_session(
+    session_id: str,
+    payload: SessionAutosavePayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return session_service.autosave_session(db, current_user, session_id, notes=payload.notes)
 
 
 @router.post('/{session_id}/finish')

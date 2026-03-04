@@ -39,6 +39,16 @@ export type ExerciseOption = {
   name: string
   type: 'strength' | 'cardio'
   owner_scope: string
+  owner_id?: string | null
+  equipment?: string | null
+  notes?: string | null
+}
+
+export type ExerciseCreateInput = {
+  name: string
+  type: 'strength' | 'cardio'
+  equipment?: string
+  notes?: string
 }
 
 export type ScheduledWorkout = {
@@ -106,6 +116,10 @@ export type SessionDetail = {
   athlete_id: string
   scheduled_workout_id?: string | null
   status: string
+  notes?: string | null
+  started_at?: string | null
+  ended_at?: string | null
+  last_saved_at?: string | null
   logged_exercises: LoggedExercise[]
 }
 
@@ -127,6 +141,13 @@ export type LogSetResponse = {
   actual_reps?: number | null
   status: 'done' | 'skipped'
   notes?: string | null
+}
+
+export type SessionAutosaveResponse = {
+  id: string
+  status: string
+  notes?: string | null
+  last_saved_at?: string | null
 }
 
 export type FinishSessionResponse = {
@@ -171,6 +192,8 @@ export const api = {
 
   listTemplates: (token: string) => req<Template[]>('/v1/templates/', {}, token),
   listExercises: (token: string) => req<ExerciseOption[]>('/v1/exercises/', {}, token),
+  createExercise: (token: string, payload: ExerciseCreateInput) =>
+    req<ExerciseOption>('/v1/exercises/', { method: 'POST', body: JSON.stringify(payload) }, token),
   createTemplate: (token: string, payload: { name: string; notes?: string; exercises?: TemplateExerciseInput[] }) =>
     req<Template>('/v1/templates/', { method: 'POST', body: JSON.stringify(payload) }, token),
   patchTemplate: (token: string, id: string, payload: { name?: string; notes?: string; exercises?: TemplateExerciseInput[] }) =>
@@ -202,6 +225,8 @@ export const api = {
   getSession: (token: string, sessionId: string) => req<SessionDetail>(`/v1/sessions/${sessionId}`, {}, token),
   startSession: (token: string, payload: { scheduled_workout_id?: string; template_id?: string }) => req<SessionDetail>('/v1/sessions/start', { method: 'POST', body: JSON.stringify(payload) }, token),
   logSet: (token: string, sessionId: string, payload: LogSetPayload) => req<LogSetResponse>(`/v1/sessions/${sessionId}/sets`, { method: 'POST', body: JSON.stringify(payload) }, token),
+  autosaveSession: (token: string, sessionId: string, notes?: string) =>
+    req<SessionAutosaveResponse>(`/v1/sessions/${sessionId}/autosave`, { method: 'POST', body: JSON.stringify({ notes }) }, token),
   finishSession: (token: string, sessionId: string) => req<FinishSessionResponse>(`/v1/sessions/${sessionId}/finish`, { method: 'POST' }, token),
 
   exportSessionsCsv: (token: string, athleteId: string) => downloadCsv(`/v1/exports/sessions.csv?athlete_id=${athleteId}`, token, 'sessions.csv'),

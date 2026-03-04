@@ -38,4 +38,12 @@ class SessionOut(BaseModel):
     athlete_id: str
     scheduled_workout_id: str | None = None
     status: str
+    notes: str | None = None
+    started_at: str | None = None
+    ended_at: str | None = None
+    last_saved_at: str | None = None
     logged_exercises: list[LoggedExerciseOut]
+
+
+class SessionAutosavePayload(BaseModel):
+    notes: str | None = None

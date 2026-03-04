@@ -128,6 +128,57 @@ def test_template_changes_do_not_mutate_existing_session_planned_values(client, 
     assert payload['planned_weight'] == 50.0
 
 
+def test_session_autosave_and_recovery_keeps_latest_progress(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+    from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
+
+    ex = Exercise(name='Front Squat', type='strength', owner_scope='global')
+    db_session.add(ex); db_session.commit(); db_session.refresh(ex)
+
+    tpl = WorkoutTemplate(owner_id=seeded_user.id, name='Leg Day')
+    db_session.add(tpl); db_session.commit(); db_session.refresh(tpl)
+
+    tx = WorkoutTemplateExercise(template_id=tpl.id, exercise_id=ex.id, sort_order=1, planned_sets=2, planned_reps=5, planned_weight=70.0)
+    db_session.add(tx); db_session.commit()
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    start = client.post('/v1/sessions/start', json={'template_id': tpl.id}, headers=headers)
+    assert start.status_code == 200
+
+    body = start.json()
+    session_id = body['id']
+    logged_exercise_id = body['logged_exercises'][0]['id']
+
+    first_save = body['last_saved_at']
+    assert first_save is not None
+
+    log_set = client.post(f'/v1/sessions/{session_id}/sets', json={
+        'logged_exercise_id': logged_exercise_id,
+        'set_number': 1,
+        'actual_weight': 72.5,
+        'actual_reps': 5,
+        'status': 'done',
+    }, headers=headers)
+    assert log_set.status_code == 200
+
+    autosave = client.post(f'/v1/sessions/{session_id}/autosave', json={'notes': 'Felt good'}, headers=headers)
+    assert autosave.status_code == 200
+    assert autosave.json()['notes'] == 'Felt good'
+
+    resumed = client.get(f'/v1/sessions/in-progress?athlete_id={seeded_user.id}', headers=headers)
+    assert resumed.status_code == 200
+    resumed_body = resumed.json()
+    assert resumed_body['id'] == session_id
+    assert resumed_body['notes'] == 'Felt good'
+    assert resumed_body['last_saved_at'] is not None
+
+    detailed = client.get(f'/v1/sessions/{session_id}', headers=headers)
+    assert detailed.status_code == 200
+    set_payload = detailed.json()['logged_exercises'][0]['sets'][0]
+    assert set_payload['actual_weight'] == 72.5
+    assert set_payload['actual_reps'] == 5
+
+
 def test_session_finish_marks_scheduled_completed(client, seeded_user, db_session):
     from app.models.exercise import Exercise
     from app.models.template import WorkoutTemplate, WorkoutTemplateExercise

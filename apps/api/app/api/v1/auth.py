@@ -14,6 +14,7 @@ router = APIRouter()
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    athlete_ids: list[str] | None = None
 
 
 @router.post('/login')
@@ -21,7 +22,28 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid credentials')
-    return {'access_token': create_access_token(user.id), 'token_type': 'bearer'}
+
+    athlete_ids: list[str] | None = None
+    if user.role == 'athlete':
+        athlete_ids = [user.id]
+    elif payload.athlete_ids:
+        if user.role == 'trainer':
+            assigned = {
+                row.athlete_id
+                for row in db.query(TrainerAssignment).filter(TrainerAssignment.trainer_id == user.id).all()
+            }
+            requested = set(payload.athlete_ids)
+            if not requested.issubset(assigned):
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Requested athlete scope exceeds assignment')
+            athlete_ids = list(requested)
+        elif user.role == 'admin':
+            athlete_ids = list(set(payload.athlete_ids))
+
+    claims = {'role': user.role}
+    if athlete_ids is not None:
+        claims['athlete_ids'] = athlete_ids
+
+    return {'access_token': create_access_token(user.id, claims=claims), 'token_type': 'bearer'}
 
 
 @router.get('/me')

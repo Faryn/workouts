@@ -22,3 +22,13 @@ def test_me_returns_current_user(client, seeded_user):
     res = client.get('/v1/auth/me', headers={'Authorization': f'Bearer {token}'})
     assert res.status_code == 200
     assert res.json()['email'] == seeded_user.email
+
+
+def test_trainer_login_rejects_unassigned_scope(client, seeded_trainer_and_assignment):
+    trainer, _ = seeded_trainer_and_assignment
+    bad = client.post('/v1/auth/login', json={
+        'email': trainer.email,
+        'password': 'secret123',
+        'athlete_ids': ['not-assigned-id'],
+    })
+    assert bad.status_code == 403

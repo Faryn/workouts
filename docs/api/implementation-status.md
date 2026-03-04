@@ -2,10 +2,13 @@
 
 ## Implemented now
 - `GET /v1/health`
-- `POST /v1/auth/login`
+- `POST /v1/auth/login` (supports optional athlete-scoped tokens for trainer/admin via `athlete_ids`)
 - `GET /v1/auth/me`
 - `GET /v1/auth/assigned-athletes` (trainer/admin athlete context helper)
 - `GET /v1/exercises/` (auth required, basic visibility filtering)
+- `POST /v1/exercises/` (role/ownership-aware create)
+- `PATCH /v1/exercises/{exercise_id}`
+- `DELETE /v1/exercises/{exercise_id}`
 
 ## Templates
 - `GET /v1/templates/`
@@ -29,6 +32,7 @@
 - `GET /v1/sessions/in-progress?athlete_id=...` (latest resumable in-progress session)
 - `POST /v1/sessions/start` (from scheduled workout or template)
 - `POST /v1/sessions/{session_id}/sets` (set actual logging while keeping planned values)
+- `POST /v1/sessions/{session_id}/autosave` (updates `last_saved_at` and optional notes for reliability/resume)
 - `POST /v1/sessions/{session_id}/finish` (marks session complete and linked scheduled workout complete)
 
 ## Cardio + Stats

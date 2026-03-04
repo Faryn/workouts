@@ -74,6 +74,10 @@ export function TemplatesPage({ token }: { token: string }) {
         notes: e.notes,
       }))
 
+      if (exercises.some(e => !e.exercise_id)) {
+        throw new Error('Please select or create an exercise for each row before saving.')
+      }
+
       await api.patchTemplate(token, editing.id, {
         name: editing.name.trim() || 'Untitled Template',
         notes: editing.notes.trim() || undefined,
@@ -82,6 +86,8 @@ export function TemplatesPage({ token }: { token: string }) {
 
       setEditing(null)
       await load()
+    } catch (e: unknown) {
+      setErr(errorMessage(e))
     } finally {
       setSaving(false)
     }
@@ -124,6 +130,14 @@ export function TemplatesPage({ token }: { token: string }) {
           onChange={setEditing}
           onCancel={() => setEditing(null)}
           onSave={() => void saveEdit()}
+          onCreateExercise={async rawName => {
+            const name = rawName.trim()
+            if (!name) throw new Error('Exercise name is required')
+            const created = await api.createExercise(token, { name, type: 'strength' })
+            const next = [...exerciseOptions, created].sort((a, b) => a.name.localeCompare(b.name))
+            setExerciseOptions(next)
+            return created
+          }}
         />
       )}
     </>

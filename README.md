@@ -4,12 +4,12 @@ Strength-focused workout app (athlete + trainer), API-first.
 
 ## Current status
 Implemented slices include:
-- Auth (login + me)
-- Exercise listing with visibility filtering
+- Auth (login + me) with optional athlete-scoped trainer/admin API tokens
+- Exercise CRUD with visibility/ownership filtering
 - Template CRUD with ordered template exercises
 - Scheduling (create/move/copy/skip + recurring patterns)
 - Calendar feed (strength + cardio merged) and compact weekly calendar UI
-- Session flow (start, log sets, finish, history, latest in-progress)
+- Session flow (start, log sets, autosave, finish, history, latest in-progress)
 - Cardio logging
 - Weights-over-time stats
 - CSV exports (sessions, exercise history, cardio)
@@ -64,6 +64,15 @@ Stop:
 cd infra
 docker compose down
 ```
+
+## Backup / restore (SQLite + exports)
+```bash
+cd infra/backup
+./backup.sh
+./restore.sh ./out/<timestamp>
+```
+
+See `docs/admin/deployment.md` for guardrails and restore verification.
 
 ## Top-level structure
 - `apps/api` – FastAPI backend

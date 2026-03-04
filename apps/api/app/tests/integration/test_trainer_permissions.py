@@ -1,5 +1,8 @@
-def _auth(client, email, password):
-    res = client.post('/v1/auth/login', json={'email': email, 'password': password})
+def _auth(client, email, password, athlete_ids=None):
+    payload = {'email': email, 'password': password}
+    if athlete_ids is not None:
+        payload['athlete_ids'] = athlete_ids
+    res = client.post('/v1/auth/login', json=payload)
     assert res.status_code == 200
     return {'Authorization': f"Bearer {res.json()['access_token']}"}
 
@@ -60,6 +63,37 @@ def test_trainer_can_read_assigned_athlete_sessions(client, seeded_user, seeded_
     latest = client.get(f'/v1/sessions/in-progress?athlete_id={seeded_user.id}', headers=trainer_headers)
     assert latest.status_code == 200
     assert latest.json()['id'] == session_id
+
+
+def test_trainer_scoped_token_enforced_on_assigned_athlete_routes(client, seeded_user, seeded_trainer_and_assignment, db_session):
+    from app.core.security import hash_password
+    from app.models.user import User
+
+    trainer, _ = seeded_trainer_and_assignment
+    second_athlete = User(
+        email='athlete-scope@example.com',
+        password_hash=hash_password('secret123'),
+        role='athlete',
+        active=True,
+    )
+    db_session.add(second_athlete)
+    db_session.commit()
+    db_session.refresh(second_athlete)
+
+    # assign trainer to second athlete too
+    from app.models.assignment import TrainerAssignment
+
+    db_session.add(TrainerAssignment(trainer_id=trainer.id, athlete_id=second_athlete.id))
+    db_session.commit()
+
+    scoped_headers = _auth(client, trainer.email, 'secret123', athlete_ids=[seeded_user.id])
+
+    allowed = client.get(f'/v1/scheduled-workouts/?athlete_id={seeded_user.id}', headers=scoped_headers)
+    assert allowed.status_code == 200
+
+    blocked = client.get(f'/v1/scheduled-workouts/?athlete_id={second_athlete.id}', headers=scoped_headers)
+    assert blocked.status_code == 403
+    assert blocked.json()['error']['code'] == 'token_scope_forbidden'
 
 
 def test_trainer_forbidden_for_unassigned_athlete(client, seeded_trainer_and_assignment, db_session):
