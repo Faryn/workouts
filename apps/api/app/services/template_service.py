@@ -57,17 +57,14 @@ def _serialize_template(db: Session, t: WorkoutTemplate, user: User) -> dict:
         ex.id: ex
         for ex in db.query(Exercise).filter(Exercise.id.in_([row.exercise_id for row in exercise_rows])).all()
     }
-    return {
-        "id": t.id,
-        "name": t.name,
-        "notes": t.notes,
-        "owner_id": t.owner_id,
-        "can_manage": _can_manage_template(db, user, t),
-        "exercises": [
+    serialized_exercises: list[dict] = []
+    for row in exercise_rows:
+        ex = exercise_map.get(row.exercise_id)
+        serialized_exercises.append(
             {
                 "id": row.id,
                 "exercise_id": row.exercise_id,
-                "exercise_name": exercise_map.get(row.exercise_id).name if exercise_map.get(row.exercise_id) else None,
+                "exercise_name": ex.name if ex is not None else None,
                 "sort_order": row.sort_order,
                 "planned_sets": row.planned_sets,
                 "planned_reps": row.planned_reps,
@@ -75,8 +72,15 @@ def _serialize_template(db: Session, t: WorkoutTemplate, user: User) -> dict:
                 "rest_seconds": row.rest_seconds,
                 "notes": row.notes,
             }
-            for row in exercise_rows
-        ],
+        )
+
+    return {
+        "id": t.id,
+        "name": t.name,
+        "notes": t.notes,
+        "owner_id": t.owner_id,
+        "can_manage": _can_manage_template(db, user, t),
+        "exercises": serialized_exercises,
     }
 
 
