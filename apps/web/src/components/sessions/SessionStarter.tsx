@@ -17,7 +17,7 @@ export function SessionStarter(props: {
 }) {
   return (
     <div className="card">
-      <h2>Sessions</h2>
+      <h2>Gym</h2>
       <div className="row">
         <select value={props.templateId} onChange={e => props.onTemplateId(e.target.value)}>
           <option value="">Select template</option>
@@ -28,12 +28,12 @@ export function SessionStarter(props: {
           ))}
         </select>
         <button onClick={props.onStartFromTemplate} disabled={!props.templateId}>
-          Start from template
+          Start
         </button>
       </div>
       <div className="row" style={{ marginTop: 8 }}>
         <select value={props.scheduledId} onChange={e => props.onScheduledId(e.target.value)}>
-          <option value="">Select planned workout</option>
+          <option value="">Today / planned</option>
           {props.scheduledItems.map(s => (
             <option key={s.id} value={s.id}>
               {s.date} · {props.templateNameById[s.template_id] ?? s.template_id}
@@ -41,14 +41,14 @@ export function SessionStarter(props: {
           ))}
         </select>
         <button onClick={props.onStartFromScheduled} disabled={!props.scheduledId}>
-          Start from scheduled
+          Go
         </button>
       </div>
 
       <div className="row" style={{ marginTop: 10 }}>
-        <span className="small">Draft autosave enabled</span>
-        <button onClick={props.onClearDraft}>Clear draft</button>
-        <button onClick={props.onResume}>Resume latest in-progress</button>
+        <span className="small">Autosave on</span>
+        <button onClick={props.onClearDraft}>Clear</button>
+        <button onClick={props.onResume}>Resume</button>
       </div>
 
       {props.err && <p style={{ color: '#fca5a5' }}>{props.err}</p>}

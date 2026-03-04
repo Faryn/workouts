@@ -23,6 +23,13 @@ function addDays(isoDate: string, days: number) {
   return iso(d)
 }
 
+function weekStartMonday(d: Date) {
+  const out = new Date(d)
+  const day = (out.getDay() + 6) % 7
+  out.setDate(out.getDate() - day)
+  return out
+}
+
 export function SchedulePage({ token, athleteId }: { token: string; athleteId: string }) {
   const [templates, setTemplates] = useState<Template[]>([])
   const [exercises, setExercises] = useState<ExerciseOption[]>([])
@@ -195,7 +202,18 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
 
   const dayItems = selectedDate ? calendarItems.filter(x => x.date === selectedDate) : []
 
-  const months = [addMonths(baseMonth, -1), baseMonth, addMonths(baseMonth, 1), addMonths(baseMonth, 2)]
+  const visibleWeeks = (() => {
+    const start = weekStartMonday(new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1))
+    return Array.from({ length: 4 }, (_, i) => {
+      const weekStart = new Date(start)
+      weekStart.setDate(start.getDate() + i * 7)
+      return Array.from({ length: 7 }, (_, d) => {
+        const day = new Date(weekStart)
+        day.setDate(weekStart.getDate() + d)
+        return day
+      })
+    })
+  })()
 
   function dayStatusClass(dateStr: string) {
     const day = calendarItems.filter(x => x.date === dateStr)
@@ -222,133 +240,111 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
           <button onClick={() => void create()} disabled={!templateId || !date}>Add once</button>
         </div>
 
-        <div className="row" style={{ marginTop: 10, alignItems: 'center' }}>
-          <strong>Pattern schedule</strong>
-          <select value={patternType} onChange={e => setPatternType(e.target.value as 'interval_days' | 'weekday')}>
-            <option value="interval_days">Every N days</option>
-            <option value="weekday">Every weekday</option>
-          </select>
-          <input type="date" value={patternStart} onChange={e => setPatternStart(e.target.value)} />
-          <input type="date" value={patternEnd} onChange={e => setPatternEnd(e.target.value)} />
-          {patternType === 'interval_days' ? (
-            <input type="number" min={1} value={intervalDays} onChange={e => setIntervalDays(Number(e.target.value || 1))} style={{ width: 110 }} />
-          ) : (
-            <select value={weekday} onChange={e => setWeekday(e.target.value)}>
-              <option value="monday">Monday</option>
-              <option value="tuesday">Tuesday</option>
-              <option value="wednesday">Wednesday</option>
-              <option value="thursday">Thursday</option>
-              <option value="friday">Friday</option>
-              <option value="saturday">Saturday</option>
-              <option value="sunday">Sunday</option>
+        <details className="advanced-panel" style={{ marginTop: 12 }}>
+          <summary>⚙ Advanced</summary>
+          <div className="row" style={{ marginTop: 10, alignItems: 'center' }}>
+            <strong>Pattern</strong>
+            <select value={patternType} onChange={e => setPatternType(e.target.value as 'interval_days' | 'weekday')}>
+              <option value="interval_days">Every N days</option>
+              <option value="weekday">Every weekday</option>
             </select>
-          )}
-          <button onClick={() => void createPattern()} disabled={!templateId || !patternStart || !patternEnd}>Apply pattern</button>
-        </div>
+            <input type="date" value={patternStart} onChange={e => setPatternStart(e.target.value)} />
+            <input type="date" value={patternEnd} onChange={e => setPatternEnd(e.target.value)} />
+            {patternType === 'interval_days' ? (
+              <input type="number" min={1} value={intervalDays} onChange={e => setIntervalDays(Number(e.target.value || 1))} style={{ width: 110 }} />
+            ) : (
+              <select value={weekday} onChange={e => setWeekday(e.target.value)}>
+                <option value="monday">Monday</option>
+                <option value="tuesday">Tuesday</option>
+                <option value="wednesday">Wednesday</option>
+                <option value="thursday">Thursday</option>
+                <option value="friday">Friday</option>
+                <option value="saturday">Saturday</option>
+                <option value="sunday">Sunday</option>
+              </select>
+            )}
+            <button onClick={() => void createPattern()} disabled={!templateId || !patternStart || !patternEnd}>Apply</button>
+          </div>
 
-        <div className="row" style={{ marginTop: 12, alignItems: 'center' }}>
-          <strong>Bulk planner tools</strong>
-          <input type="date" value={bulkFrom} onChange={e => setBulkFrom(e.target.value)} />
-          <input type="date" value={bulkTo} onChange={e => setBulkTo(e.target.value)} />
-          <input type="number" value={shiftDays} onChange={e => setShiftDays(Number(e.target.value || 0))} style={{ width: 90 }} />
-          <button onClick={() => void bulkShift()} disabled={!bulkFrom || !bulkTo}>Shift range</button>
-          <select value={bulkTemplateId} onChange={e => setBulkTemplateId(e.target.value)}>
-            <option value="">Replace with template…</option>
-            {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-          <button onClick={() => void bulkReplaceTemplate()} disabled={!bulkFrom || !bulkTo || !bulkTemplateId}>Replace template in range</button>
-          <button onClick={() => void bulkSkipRange()} disabled={!bulkFrom || !bulkTo}>Skip range</button>
-          <span className="small">planned in range: {rangedPlannedItems().length}</span>
-        </div>
+          <div className="row" style={{ marginTop: 10, alignItems: 'center' }}>
+            <strong>Bulk</strong>
+            <input type="date" value={bulkFrom} onChange={e => setBulkFrom(e.target.value)} />
+            <input type="date" value={bulkTo} onChange={e => setBulkTo(e.target.value)} />
+            <input type="number" value={shiftDays} onChange={e => setShiftDays(Number(e.target.value || 0))} style={{ width: 90 }} />
+            <button onClick={() => void bulkShift()} disabled={!bulkFrom || !bulkTo}>Shift</button>
+            <select value={bulkTemplateId} onChange={e => setBulkTemplateId(e.target.value)}>
+              <option value="">Replace template…</option>
+              {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <button onClick={() => void bulkReplaceTemplate()} disabled={!bulkFrom || !bulkTo || !bulkTemplateId}>Replace</button>
+            <button onClick={() => void bulkSkipRange()} disabled={!bulkFrom || !bulkTo}>Skip</button>
+            <span className="small">in range: {rangedPlannedItems().length}</span>
+          </div>
+        </details>
 
         {err && <p style={{ color: '#fca5a5' }}>{err}</p>}
       </div>
 
       <div className="card">
-        <h3>Scrollable Calendar View</h3>
+        <h3>Week view</h3>
         <div className="row" style={{ marginBottom: 10 }}>
-          <button onClick={() => setBaseMonth(addMonths(baseMonth, -1))}>← Prev</button>
+          <button onClick={() => setBaseMonth(addMonths(baseMonth, -1))}>← Month</button>
           <strong style={{ paddingTop: 10 }}>{monthLabel(baseMonth)}</strong>
-          <button onClick={() => setBaseMonth(addMonths(baseMonth, 1))}>Next →</button>
+          <button onClick={() => setBaseMonth(addMonths(baseMonth, 1))}>Month →</button>
         </div>
 
-        <div style={{ maxHeight: 420, overflowY: 'auto', border: '1px solid #374151', borderRadius: 8, padding: 8 }}>
-          {months.map(m => {
-            const start = new Date(m.getFullYear(), m.getMonth(), 1)
-            const end = new Date(m.getFullYear(), m.getMonth() + 1, 0)
-            const leadingBlanks = (start.getDay() + 6) % 7 // Monday-first
-            const cells: Array<Date | null> = [
-              ...Array.from({ length: leadingBlanks }, () => null),
-              ...Array.from({ length: end.getDate() }, (_, i) => new Date(m.getFullYear(), m.getMonth(), i + 1)),
-            ]
-            while (cells.length % 7 !== 0) cells.push(null)
-
-            const weeks: Array<Array<Date | null>> = []
-            for (let i = 0; i < cells.length; i += 7) {
-              weeks.push(cells.slice(i, i + 7))
-            }
-
-            return (
-              <div key={`${m.getFullYear()}-${m.getMonth()}`} style={{ marginBottom: 12 }}>
-                <h4>{monthLabel(m)}</h4>
-                <div className="small" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 6 }}>
-                  <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-                </div>
-                <div style={{ display: 'grid', gap: 6 }}>
-                  {weeks.map((week, widx) => (
-                    <div key={widx} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
-                      {week.map((d, didx) => {
-                        if (!d) return <div key={didx} style={{ minHeight: 40 }} />
-                        const ds = iso(d)
-                        return (
-                          <button
-                            key={ds}
-                            onClick={() => setSelectedDate(ds)}
-                            style={{
-                              minHeight: 40,
-                              padding: 6,
-                              borderRadius: 8,
-                              border: selectedDate === ds ? '2px solid #93c5fd' : `1px solid ${dayStatusClass(ds)}`,
-                              position: 'relative',
-                            }}
-                          >
-                            {d.getDate()}
-                            {hasEvents(ds) && (
-                              <span
-                                style={{
-                                  position: 'absolute',
-                                  bottom: 4,
-                                  left: '50%',
-                                  transform: 'translateX(-50%)',
-                                  width: 6,
-                                  height: 6,
-                                  borderRadius: '50%',
-                                  background: dayStatusClass(ds),
-                                  display: 'inline-block',
-                                }}
-                              />
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
+        <div className="small" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 8 }}>
+          <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
         </div>
+
+        {visibleWeeks.map((week, widx) => (
+          <div key={widx} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 8 }}>
+            {week.map((d) => {
+              const ds = iso(d)
+              return (
+                <button
+                  key={ds}
+                  onClick={() => setSelectedDate(ds)}
+                  style={{
+                    minHeight: 64,
+                    padding: 8,
+                    borderRadius: 10,
+                    border: selectedDate === ds ? '2px solid var(--accent)' : `1px solid ${dayStatusClass(ds)}`,
+                    position: 'relative',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div>{d.getDate()}</div>
+                  {hasEvents(ds) && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        bottom: 6,
+                        right: 8,
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: dayStatusClass(ds),
+                        display: 'inline-block',
+                      }}
+                    />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        ))}
 
         {selectedDate && (
           <div style={{ marginTop: 12 }}>
-            <h4>{selectedDate} — day details</h4>
+            <h4>{selectedDate}</h4>
             <ul>
               {dayItems.map(item => (
                 <li key={`${item.kind}-${item.id}`}>
                   {item.kind === 'strength' ? `🏋️ ${item.template_name} (${item.status})` : `🏃 ${item.type} (${item.duration_seconds}s)`}
                 </li>
               ))}
-              {dayItems.length === 0 && <li className="small">Nothing planned/completed on this day.</li>}
+              {dayItems.length === 0 && <li className="small">No entries.</li>}
             </ul>
           </div>
         )}

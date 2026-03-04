@@ -175,7 +175,7 @@ test('template create and delete flow in UI', async ({ page }) => {
 
   await page.goto('/')
   await page.getByRole('button', { name: 'Login' }).click()
-  await page.getByRole('link', { name: 'Templates' }).click()
+  await page.getByRole('link', { name: 'Plans' }).click()
 
   await expect(page.getByText('Upper A')).toBeVisible()
 

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 
 type AthleteLite = { id: string; email: string }
 
@@ -21,10 +21,10 @@ export function Layout({
     <div className="container">
       <div className="card row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="row">
-          <Link to="/">Dashboard</Link>
-          <Link to="/templates">Templates</Link>
-          <Link to="/schedule">Schedule</Link>
-          <Link to="/sessions">Sessions</Link>
+          <NavLink to="/" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Home</NavLink>
+          <NavLink to="/templates" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Plans</NavLink>
+          <NavLink to="/schedule" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Week</NavLink>
+          <NavLink to="/sessions" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Gym</NavLink>
         </div>
         <div className="row" style={{ alignItems: 'center' }}>
           {(me.role === 'trainer' || me.role === 'admin') && athleteOptions.length > 0 && (
