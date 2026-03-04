@@ -7,12 +7,19 @@ from app.api.deps import get_current_user
 from app.core.db import get_db
 from app.core.errors import AppError
 from app.core.permissions import ensure_self_or_assigned
-from app.models.schedule import ScheduledWorkout
 from app.models.user import User
 from app.schemas.schedule import MoveCopyPayload, ScheduledCreate, ScheduledOut, ScheduledPatternCreate
 from app.services import calendar_service, schedule_service
 
 router = APIRouter()
+
+
+def _get_authorized_scheduled(db: Session, current_user: User, scheduled_id: str):
+    row = schedule_service.get_scheduled(db, scheduled_id)
+    if not row:
+        raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
+    ensure_self_or_assigned(db, current_user, row.athlete_id)
+    return row
 
 
 @router.get('/', response_model=list[ScheduledOut])
@@ -58,13 +65,8 @@ def move_scheduled(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    row = db.get(ScheduledWorkout, scheduled_id)
-    if not row:
-        raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
-    ensure_self_or_assigned(db, current_user, row.athlete_id)
-    moved = schedule_service.move_scheduled(db, scheduled_id, payload.to_date)
-    if not moved:
-        raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
+    row = _get_authorized_scheduled(db, current_user, scheduled_id)
+    moved = schedule_service.move_scheduled(row, payload.to_date, db)
     return schedule_service.as_dict(moved)
 
 
@@ -96,13 +98,8 @@ def skip_scheduled(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    row = db.get(ScheduledWorkout, scheduled_id)
-    if not row:
-        raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
-    ensure_self_or_assigned(db, current_user, row.athlete_id)
-    skipped = schedule_service.mark_skipped(db, scheduled_id)
-    if not skipped:
-        raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
+    row = _get_authorized_scheduled(db, current_user, scheduled_id)
+    skipped = schedule_service.mark_skipped(row, db)
     return schedule_service.as_dict(skipped)
 
 
@@ -113,13 +110,8 @@ def copy_scheduled(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    row = db.get(ScheduledWorkout, scheduled_id)
-    if not row:
-        raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
-    ensure_self_or_assigned(db, current_user, row.athlete_id)
-    copied = schedule_service.copy_scheduled(db, scheduled_id, payload.to_date)
-    if not copied:
-        raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
+    row = _get_authorized_scheduled(db, current_user, scheduled_id)
+    copied = schedule_service.copy_scheduled(row, payload.to_date, db)
     return schedule_service.as_dict(copied)
 
 
@@ -129,11 +121,6 @@ def delete_scheduled(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    row = db.get(ScheduledWorkout, scheduled_id)
-    if not row:
-        raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
-    ensure_self_or_assigned(db, current_user, row.athlete_id)
-    ok = schedule_service.delete_scheduled(db, scheduled_id)
-    if not ok:
-        raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
+    row = _get_authorized_scheduled(db, current_user, scheduled_id)
+    schedule_service.delete_scheduled(row, db)
     return {'ok': True}

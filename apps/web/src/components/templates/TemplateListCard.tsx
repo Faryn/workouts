@@ -18,8 +18,8 @@ export function TemplateListCard(props: {
                 <span className="small" style={{ marginLeft: 8 }}>({t.exercises.length} exercises)</span>
               </span>
               <div className="row">
-                <button onClick={() => props.onEdit(t.id)}>Edit</button>
-                <button onClick={() => props.onDelete(t.id)}>Delete</button>
+                {t.can_manage !== false && <button onClick={() => props.onEdit(t.id)}>Edit</button>}
+                {t.can_manage !== false && <button onClick={() => props.onDelete(t.id)}>Delete</button>}
               </div>
             </div>
 
@@ -31,7 +31,7 @@ export function TemplateListCard(props: {
                   .sort((a, b) => a.sort_order - b.sort_order)
                   .map(ex => (
                     <li key={ex.id} className="small" style={{ marginBottom: 4 }}>
-                      {props.exerciseNameById[ex.exercise_id] ?? ex.exercise_id} · {ex.planned_sets} × {ex.planned_reps}
+                      {props.exerciseNameById[ex.exercise_id] ?? ex.exercise_name ?? ex.exercise_id} · {ex.planned_sets} × {ex.planned_reps}
                       {ex.planned_weight != null ? ` · ${ex.planned_weight} kg` : ''}
                       {ex.rest_seconds != null ? ` · rest ${ex.rest_seconds}s` : ''}
                     </li>

@@ -24,7 +24,7 @@ function toEditable(t: Template): EditableTemplate {
   }
 }
 
-export function TemplatesPage({ token }: { token: string }) {
+export function TemplatesPage({ token, me, athleteId }: { token: string; me: { id: string; role: string }; athleteId: string }) {
   const [items, setItems] = useState<Template[]>([])
   const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([])
 
@@ -41,7 +41,8 @@ export function TemplatesPage({ token }: { token: string }) {
   async function load() {
     setErr(null)
     try {
-      const [templates, exercises] = await Promise.all([api.listTemplates(token), api.listExercises(token)])
+      const contextAthleteId = me.role === 'trainer' || me.role === 'admin' ? athleteId : undefined
+      const [templates, exercises] = await Promise.all([api.listTemplates(token, contextAthleteId), api.listExercises(token)])
       setItems(templates)
       setExerciseOptions(exercises.filter(e => e.type === 'strength'))
     } catch (e: unknown) {
@@ -51,7 +52,7 @@ export function TemplatesPage({ token }: { token: string }) {
 
   useEffect(() => {
     void load()
-  }, [])
+  }, [athleteId, me.role])
 
   async function create() {
     await api.createTemplate(token, { name, notes: notes || undefined, exercises: [] })

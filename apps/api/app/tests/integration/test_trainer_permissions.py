@@ -33,6 +33,68 @@ def test_trainer_can_read_assigned_athlete_schedule(client, seeded_user, seeded_
     assert len(got.json()) >= 1
 
 
+def test_trainer_can_read_assigned_athlete_templates(client, seeded_user, seeded_trainer_and_assignment):
+    trainer, _ = seeded_trainer_and_assignment
+    trainer_headers = _auth(client, trainer.email, 'secret123')
+    athlete_headers = _auth(client, seeded_user.email, 'secret123')
+
+    created = client.post('/v1/templates/', json={'name': 'Athlete Plan'}, headers=athlete_headers)
+    assert created.status_code == 200
+
+    got = client.get(f'/v1/templates/?athlete_id={seeded_user.id}', headers=trainer_headers)
+    assert got.status_code == 200
+    names = [x['name'] for x in got.json()]
+    assert 'Athlete Plan' in names
+
+
+def test_athlete_can_read_assigned_trainer_templates(client, seeded_user, seeded_trainer_and_assignment, db_session):
+    from app.models.exercise import Exercise
+
+    trainer, _ = seeded_trainer_and_assignment
+    trainer_headers = _auth(client, trainer.email, 'secret123')
+    athlete_headers = _auth(client, seeded_user.email, 'secret123')
+
+    trainer_ex = Exercise(
+        name='Trainer Custom Bench',
+        type='strength',
+        owner_scope='trainer',
+        owner_id=trainer.id,
+    )
+    db_session.add(trainer_ex)
+    db_session.commit()
+    db_session.refresh(trainer_ex)
+
+    created = client.post('/v1/templates/', json={
+        'name': 'Trainer Plan',
+        'exercises': [{'exercise_id': trainer_ex.id, 'planned_sets': 3, 'planned_reps': 5}],
+    }, headers=trainer_headers)
+    assert created.status_code == 200
+
+    got = client.get('/v1/templates/', headers=athlete_headers)
+    assert got.status_code == 200
+    plans = got.json()
+    names = [x['name'] for x in plans]
+    assert 'Trainer Plan' in names
+
+    trainer_plan = next(x for x in plans if x['name'] == 'Trainer Plan')
+    assert trainer_plan['exercises'][0]['exercise_name'] == 'Trainer Custom Bench'
+
+
+def test_trainer_can_edit_assigned_athlete_template(client, seeded_user, seeded_trainer_and_assignment):
+    trainer, _ = seeded_trainer_and_assignment
+    trainer_headers = _auth(client, trainer.email, 'secret123')
+    athlete_headers = _auth(client, seeded_user.email, 'secret123')
+
+    created = client.post('/v1/templates/', json={'name': 'Athlete Editable'}, headers=athlete_headers)
+    assert created.status_code == 200
+    template_id = created.json()['id']
+
+    patched = client.patch(f'/v1/templates/{template_id}', json={'name': 'Athlete Edited By Trainer'}, headers=trainer_headers)
+    assert patched.status_code == 200
+    assert patched.json()['name'] == 'Athlete Edited By Trainer'
+
+
+
 def test_trainer_can_read_assigned_athlete_sessions(client, seeded_user, seeded_trainer_and_assignment, db_session):
     from app.models.exercise import Exercise
 

@@ -84,6 +84,16 @@ export function InProgressSession(props: {
               status: st.status === 'skipped' ? 'skipped' : 'done',
             }
             const usesWeight = st.planned_weight != null || draft.actual_weight !== ''
+            const hasLogged = draft.actual_reps !== '' || draft.actual_weight !== ''
+            const plannedText = usesWeight
+              ? `${st.planned_weight ?? '-'} kg × ${st.planned_reps ?? '-'} reps`
+              : `${st.planned_reps ?? '-'} reps`
+            const loggedText = hasLogged
+              ? (usesWeight
+                  ? `${draft.actual_weight || '-'} kg × ${draft.actual_reps || '-'} reps`
+                  : `${draft.actual_reps || '-'} reps`)
+              : '—'
+
             return (
               <button
                 key={k}
@@ -93,16 +103,8 @@ export function InProgressSession(props: {
                 onClick={() => props.onSelectSet(k)}
               >
                 <span><strong>Set {st.set_number}</strong></span>
-                <span className="small">
-                  {usesWeight
-                    ? `${st.planned_weight ?? '-'} kg × ${st.planned_reps ?? '-'} reps`
-                    : `${st.planned_reps ?? '-'} reps`}
-                </span>
-                <span className="small">
-                  {usesWeight
-                    ? `${draft.actual_weight || '-'} kg / ${draft.actual_reps || '-'} reps`
-                    : `${draft.actual_reps || '-'} reps`}
-                </span>
+                <span className="small"><strong>Planned:</strong> {plannedText}</span>
+                <span className="small"><strong>Logged:</strong> {loggedText}</span>
               </button>
             )
           })}

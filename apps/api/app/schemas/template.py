@@ -14,6 +14,7 @@ class TemplateExerciseIn(BaseModel):
 class TemplateExerciseOut(BaseModel):
     id: str
     exercise_id: str
+    exercise_name: str | None = None
     sort_order: int
     planned_sets: int
     planned_reps: int
@@ -39,4 +40,5 @@ class TemplateOut(BaseModel):
     name: str
     notes: str | None = None
     owner_id: str
+    can_manage: bool = False
     exercises: list[TemplateExerciseOut] = Field(default_factory=list)

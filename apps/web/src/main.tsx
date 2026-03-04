@@ -56,9 +56,12 @@ function App() {
       >
         <Routes>
           <Route path="/" element={<DashboardPage me={me} token={token} athleteId={selectedAthleteId} />} />
-          <Route path="/templates" element={<TemplatesPage token={token} />} />
+          <Route path="/templates" element={<TemplatesPage token={token} me={me} athleteId={selectedAthleteId} />} />
           <Route path="/schedule" element={<SchedulePage token={token} athleteId={selectedAthleteId} />} />
-          <Route path="/sessions" element={<SessionsPage token={token} athleteId={selectedAthleteId} />} />
+          <Route
+            path="/sessions"
+            element={me.role === 'athlete' ? <SessionsPage token={token} athleteId={selectedAthleteId} /> : <Navigate to="/" replace />}
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>

@@ -6,6 +6,16 @@ from app.models.schedule import ScheduledWorkout
 from app.models.template import WorkoutTemplate
 from app.repositories import schedule_repo
 
+WEEKDAY_MAP = {
+    'monday': 0,
+    'tuesday': 1,
+    'wednesday': 2,
+    'thursday': 3,
+    'friday': 4,
+    'saturday': 5,
+    'sunday': 6,
+}
+
 
 def as_dict(row: ScheduledWorkout) -> dict:
     return {
@@ -23,6 +33,10 @@ def list_scheduled(db: Session, athlete_id: str) -> list[ScheduledWorkout]:
     return schedule_repo.list_by_athlete(db, athlete_id)
 
 
+def get_scheduled(db: Session, scheduled_id: str) -> ScheduledWorkout | None:
+    return schedule_repo.get(db, scheduled_id)
+
+
 def create_scheduled(
     db: Session,
     athlete_id: str,
@@ -35,18 +49,12 @@ def create_scheduled(
     return schedule_repo.create(db, athlete_id, template_id, on_date)
 
 
-def move_scheduled(db: Session, scheduled_id: str, to_date: date) -> ScheduledWorkout | None:
-    row = schedule_repo.get(db, scheduled_id)
-    if not row:
-        return None
+def move_scheduled(row: ScheduledWorkout, to_date: date, db: Session) -> ScheduledWorkout:
     row.date = to_date
     return schedule_repo.save(db, row)
 
 
-def copy_scheduled(db: Session, scheduled_id: str, to_date: date) -> ScheduledWorkout | None:
-    row = schedule_repo.get(db, scheduled_id)
-    if not row:
-        return None
+def copy_scheduled(row: ScheduledWorkout, to_date: date, db: Session) -> ScheduledWorkout:
     return schedule_repo.create(
         db,
         athlete_id=row.athlete_id,
@@ -56,20 +64,13 @@ def copy_scheduled(db: Session, scheduled_id: str, to_date: date) -> ScheduledWo
     )
 
 
-def mark_skipped(db: Session, scheduled_id: str) -> ScheduledWorkout | None:
-    row = schedule_repo.get(db, scheduled_id)
-    if not row:
-        return None
+def mark_skipped(row: ScheduledWorkout, db: Session) -> ScheduledWorkout:
     row.status = 'skipped'
     return schedule_repo.save(db, row)
 
 
-def delete_scheduled(db: Session, scheduled_id: str) -> bool:
-    row = schedule_repo.get(db, scheduled_id)
-    if not row:
-        return False
+def delete_scheduled(row: ScheduledWorkout, db: Session) -> None:
     schedule_repo.delete(db, row)
-    return True
 
 
 def create_scheduled_pattern(
@@ -100,18 +101,9 @@ def create_scheduled_pattern(
         return out
 
     if pattern_type == 'weekday':
-        weekday_map = {
-            'monday': 0,
-            'tuesday': 1,
-            'wednesday': 2,
-            'thursday': 3,
-            'friday': 4,
-            'saturday': 5,
-            'sunday': 6,
-        }
         if not weekday:
             return []
-        target = weekday_map.get(weekday.strip().lower())
+        target = WEEKDAY_MAP.get(weekday.strip().lower())
         if target is None:
             return []
 

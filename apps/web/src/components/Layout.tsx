@@ -24,7 +24,9 @@ export function Layout({
           <NavLink to="/" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Home</NavLink>
           <NavLink to="/templates" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Plans</NavLink>
           <NavLink to="/schedule" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Week</NavLink>
-          <NavLink to="/sessions" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Gym</NavLink>
+          {me.role === 'athlete' && (
+            <NavLink to="/sessions" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Gym</NavLink>
+          )}
         </div>
         <div className="row" style={{ alignItems: 'center' }}>
           {(me.role === 'trainer' || me.role === 'admin') && athleteOptions.length > 0 && (

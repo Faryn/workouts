@@ -11,8 +11,12 @@ router = APIRouter()
 
 
 @router.get('/', response_model=list[TemplateOut])
-def list_templates(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return template_service.list_templates(db, current_user)
+def list_templates(
+    athlete_id: str | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return template_service.list_templates(db, current_user, athlete_id=athlete_id)
 
 
 @router.post('/', response_model=TemplateOut)

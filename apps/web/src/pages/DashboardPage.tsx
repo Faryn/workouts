@@ -44,7 +44,7 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
       <p className="small">Current frontend covers templates, scheduling, sessions, and CSV exports.</p>
 
       <div className="row" style={{ marginBottom: 12 }}>
-        {todaysPlanned && (
+        {me.role === 'athlete' && todaysPlanned && (
           <a href={`/sessions?scheduled_id=${todaysPlanned.id}`}>
             <button>Start today’s workout</button>
           </a>
@@ -59,7 +59,7 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
         {calendarItems.map(item => (
           <li key={`${item.kind}-${item.id}`} style={{ marginBottom: 6 }}>
             {item.date} · {item.kind === 'strength' ? `🏋️ ${item.template_name} (${item.status})` : `🏃 ${item.type} (${item.duration_seconds}s)`}
-            {item.kind === 'strength' && item.status === 'planned' && (
+            {me.role === 'athlete' && item.kind === 'strength' && item.status === 'planned' && (
               <a className="button-link" href={`/sessions?scheduled_id=${item.id}`} style={{ marginLeft: 8 }}>Start</a>
             )}
           </li>

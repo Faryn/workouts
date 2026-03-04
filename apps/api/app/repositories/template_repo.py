@@ -1,3 +1,4 @@
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
@@ -7,6 +8,17 @@ def list_by_owner(db: Session, owner_id: str) -> list[WorkoutTemplate]:
     return (
         db.query(WorkoutTemplate)
         .filter(WorkoutTemplate.owner_id == owner_id)
+        .order_by(WorkoutTemplate.name.asc())
+        .all()
+    )
+
+
+def list_by_owners(db: Session, owner_ids: list[str]) -> list[WorkoutTemplate]:
+    if not owner_ids:
+        return []
+    return (
+        db.query(WorkoutTemplate)
+        .filter(or_(*[WorkoutTemplate.owner_id == owner_id for owner_id in owner_ids]))
         .order_by(WorkoutTemplate.name.asc())
         .all()
     )
