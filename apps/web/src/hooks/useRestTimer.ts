@@ -18,6 +18,27 @@ export function useRestTimer(defaultSeconds: number) {
       setRestRemaining(prev => {
         if (prev <= 1) {
           setRestRunning(false)
+          try {
+            if (navigator.vibrate) navigator.vibrate([120, 50, 120])
+            const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+            if (Ctx) {
+              const ctx = new Ctx()
+              const osc = ctx.createOscillator()
+              const gain = ctx.createGain()
+              osc.type = 'sine'
+              osc.frequency.value = 880
+              gain.gain.value = 0.03
+              osc.connect(gain)
+              gain.connect(ctx.destination)
+              osc.start()
+              setTimeout(() => {
+                osc.stop()
+                void ctx.close()
+              }, 180)
+            }
+          } catch {
+            // ignore unsupported device audio/haptics
+          }
           return 0
         }
         return prev - 1

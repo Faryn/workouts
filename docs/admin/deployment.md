@@ -64,3 +64,10 @@ Optional schedule/retention overrides:
 ```bash
 BACKUP_HOUR=2 BACKUP_MINUTE=30 RETENTION_DAYS=21 BACKUP_ROOT=/srv/workout-backups ./install-cron.sh
 ```
+
+Backup health + restore drill checks:
+```bash
+cd infra/backup
+./backup-health.sh        # stale/missing backup alert
+./restore-drill.sh        # integrity-check latest backup file
+```

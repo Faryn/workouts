@@ -16,6 +16,15 @@ type SetDraft = {
   status: 'done' | 'skipped'
 }
 
+type PendingSetLog = {
+  session_id: string
+  logged_exercise_id: string
+  set_number: number
+  actual_weight: number | null
+  actual_reps: number | null
+  status: 'done' | 'skipped'
+}
+
 function setKey(loggedExerciseId: string, setNumber: number) {
   return `${loggedExerciseId}:${setNumber}`
 }
@@ -34,6 +43,7 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
   const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>({})
   const [activeSetKey, setActiveSetKey] = useState<string | null>(null)
   const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'ok' | 'error'>('idle')
+  const queueKey = `pending-set-logs:${athleteId}`
 
   const rest = useRestTimer(DEFAULT_REST_SECONDS)
 
@@ -62,6 +72,27 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
       if (typeof draft.restSeconds === 'number') rest.applyDefault(draft.restSeconds)
     },
   )
+
+  function getPendingLogs(): PendingSetLog[] {
+    try {
+      const raw = localStorage.getItem(queueKey)
+      if (!raw) return []
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  function setPendingLogs(items: PendingSetLog[]) {
+    localStorage.setItem(queueKey, JSON.stringify(items))
+  }
+
+  function enqueuePendingLog(item: PendingSetLog) {
+    const current = getPendingLogs()
+    current.push(item)
+    setPendingLogs(current)
+  }
 
   function initializeSetDraftsFromSession(s: SessionDetail | null) {
     if (!s) return
@@ -132,6 +163,36 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
     return () => window.clearInterval(id)
   }, [session, token])
 
+  useEffect(() => {
+    const flush = async () => {
+      if (!navigator.onLine) return
+      const pending = getPendingLogs()
+      if (!pending.length) return
+
+      const remaining: PendingSetLog[] = []
+      for (const p of pending) {
+        try {
+          await api.logSet(token, p.session_id, {
+            logged_exercise_id: p.logged_exercise_id,
+            set_number: p.set_number,
+            actual_weight: p.actual_weight,
+            actual_reps: p.actual_reps,
+            status: p.status,
+          })
+        } catch {
+          remaining.push(p)
+        }
+      }
+      setPendingLogs(remaining)
+      if (remaining.length === 0) setNotice('Offline set logs synced.')
+    }
+
+    void flush()
+    const onOnline = () => { void flush() }
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [token, athleteId])
+
   async function startFromTemplate() {
     setErr(null)
     try {
@@ -171,17 +232,31 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
     if (!session) return
     const k = setKey(loggedExerciseId, setNumber)
     const draft = setDrafts[k] ?? { actual_weight: '', actual_reps: '', status }
+    const actualWeight = draft.actual_weight === '' ? null : Number(draft.actual_weight)
+    const actualReps = draft.actual_reps === '' ? null : Number(draft.actual_reps)
 
-    await api.logSet(token, session.id, {
-      logged_exercise_id: loggedExerciseId,
-      set_number: setNumber,
-      actual_weight: draft.actual_weight === '' ? null : Number(draft.actual_weight),
-      actual_reps: draft.actual_reps === '' ? null : Number(draft.actual_reps),
-      status,
-    })
+    try {
+      await api.logSet(token, session.id, {
+        logged_exercise_id: loggedExerciseId,
+        set_number: setNumber,
+        actual_weight: actualWeight,
+        actual_reps: actualReps,
+        status,
+      })
+    } catch {
+      enqueuePendingLog({
+        session_id: session.id,
+        logged_exercise_id: loggedExerciseId,
+        set_number: setNumber,
+        actual_weight: actualWeight,
+        actual_reps: actualReps,
+        status,
+      })
+      setNotice('Offline: set saved locally and will sync when back online.')
+    }
 
     const nextKey = goNext ? nextSetKey(loggedExerciseId, setNumber) : null
-    const refreshed = await api.getSession(token, session.id)
+    const refreshed = await api.getSession(token, session.id).catch(() => session)
     setSession(refreshed)
     initializeSetDraftsFromSession(refreshed)
     if (nextKey) setActiveSetKey(nextKey)

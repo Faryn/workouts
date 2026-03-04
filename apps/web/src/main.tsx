@@ -10,6 +10,14 @@ import { SessionsPage } from './pages/SessionsPage'
 import { TemplatesPage } from './pages/TemplatesPage'
 import './styles.css'
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // no-op for local/dev failures
+    })
+  })
+}
+
 function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'))
   const [me, setMe] = useState<Me | null>(null)

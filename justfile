@@ -38,3 +38,16 @@ lint-api:
 
 typecheck-api:
   cd {{api_dir}} && PYTHONPATH=. .venv/bin/mypy --explicit-package-bases app
+
+backup-health:
+  cd infra/backup && ./backup-health.sh
+
+restore-drill:
+  cd infra/backup && ./restore-drill.sh
+
+release-check:
+  just test-api
+  just lint-api
+  just typecheck-api
+  cd {{web_dir}} && npm run build
+  cd {{web_dir}} && npm run test:e2e

@@ -17,6 +17,12 @@ function monthLabel(d: Date) {
   return d.toLocaleString(undefined, { month: 'long', year: 'numeric' })
 }
 
+function addDays(isoDate: string, days: number) {
+  const d = new Date(`${isoDate}T00:00:00`)
+  d.setDate(d.getDate() + days)
+  return iso(d)
+}
+
 export function SchedulePage({ token, athleteId }: { token: string; athleteId: string }) {
   const [templates, setTemplates] = useState<Template[]>([])
   const [exercises, setExercises] = useState<ExerciseOption[]>([])
@@ -35,7 +41,14 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
+  const [bulkFrom, setBulkFrom] = useState('')
+  const [bulkTo, setBulkTo] = useState('')
+  const [bulkTemplateId, setBulkTemplateId] = useState('')
+  const [shiftDays, setShiftDays] = useState(7)
+
   const [baseMonth, setBaseMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+
+  const filtersKey = `schedule-filters:${athleteId}`
 
   const templateById = useMemo(() => {
     const m: Record<string, Template> = {}
@@ -83,6 +96,24 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
     }
   }
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(filtersKey)
+      if (!raw) return
+      const f = JSON.parse(raw)
+      if (f.bulkFrom) setBulkFrom(f.bulkFrom)
+      if (f.bulkTo) setBulkTo(f.bulkTo)
+      if (f.bulkTemplateId) setBulkTemplateId(f.bulkTemplateId)
+      if (typeof f.shiftDays === 'number') setShiftDays(f.shiftDays)
+    } catch {
+      // ignore
+    }
+  }, [filtersKey])
+
+  useEffect(() => {
+    localStorage.setItem(filtersKey, JSON.stringify({ bulkFrom, bulkTo, bulkTemplateId, shiftDays }))
+  }, [filtersKey, bulkFrom, bulkTo, bulkTemplateId, shiftDays])
+
   useEffect(() => { void load() }, [athleteId, range.from, range.to])
 
   async function create() {
@@ -124,6 +155,41 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
   async function skipSelected() {
     if (!selected) return
     await api.skipScheduled(token, selected.id)
+    await load()
+  }
+
+  function rangedPlannedItems() {
+    if (!bulkFrom || !bulkTo) return []
+    return items.filter(i => i.status === 'planned' && i.date >= bulkFrom && i.date <= bulkTo)
+  }
+
+  async function bulkShift() {
+    const scope = rangedPlannedItems()
+    for (const it of scope) {
+      await api.moveScheduled(token, it.id, addDays(it.date, shiftDays))
+    }
+    await load()
+  }
+
+  async function bulkReplaceTemplate() {
+    if (!bulkTemplateId) return
+    const scope = rangedPlannedItems()
+    for (const it of scope) {
+      await api.createScheduled(token, {
+        athlete_id: athleteId,
+        template_id: bulkTemplateId,
+        date: it.date,
+      })
+      await api.skipScheduled(token, it.id)
+    }
+    await load()
+  }
+
+  async function bulkSkipRange() {
+    const scope = rangedPlannedItems()
+    for (const it of scope) {
+      await api.skipScheduled(token, it.id)
+    }
     await load()
   }
 
@@ -178,6 +244,21 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
             </select>
           )}
           <button onClick={() => void createPattern()} disabled={!templateId || !patternStart || !patternEnd}>Apply pattern</button>
+        </div>
+
+        <div className="row" style={{ marginTop: 12, alignItems: 'center' }}>
+          <strong>Bulk planner tools</strong>
+          <input type="date" value={bulkFrom} onChange={e => setBulkFrom(e.target.value)} />
+          <input type="date" value={bulkTo} onChange={e => setBulkTo(e.target.value)} />
+          <input type="number" value={shiftDays} onChange={e => setShiftDays(Number(e.target.value || 0))} style={{ width: 90 }} />
+          <button onClick={() => void bulkShift()} disabled={!bulkFrom || !bulkTo}>Shift range</button>
+          <select value={bulkTemplateId} onChange={e => setBulkTemplateId(e.target.value)}>
+            <option value="">Replace with template…</option>
+            {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+          <button onClick={() => void bulkReplaceTemplate()} disabled={!bulkFrom || !bulkTo || !bulkTemplateId}>Replace template in range</button>
+          <button onClick={() => void bulkSkipRange()} disabled={!bulkFrom || !bulkTo}>Skip range</button>
+          <span className="small">planned in range: {rangedPlannedItems().length}</span>
         </div>
 
         {err && <p style={{ color: '#fca5a5' }}>{err}</p>}

@@ -33,6 +33,9 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
     }
   }
 
+  const today = iso(new Date())
+  const todaysPlanned = calendarItems.find(i => i.kind === 'strength' && i.status === 'planned' && i.date === today)
+
   return (
     <div className="card">
       <h2>Dashboard</h2>
@@ -41,6 +44,11 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
       <p className="small">Current frontend covers templates, scheduling, sessions, and CSV exports.</p>
 
       <div className="row" style={{ marginBottom: 12 }}>
+        {todaysPlanned && (
+          <a href={`/sessions?scheduled_id=${todaysPlanned.id}`}>
+            <button>Start today’s workout</button>
+          </a>
+        )}
         <button onClick={() => void run(() => api.exportSessionsCsv(token, athleteId))}>Export Sessions CSV</button>
         <button onClick={() => void run(() => api.exportExerciseHistoryCsv(token, athleteId))}>Export Exercise History CSV</button>
         <button onClick={() => void run(() => api.exportCardioCsv(token, athleteId))}>Export Cardio CSV</button>

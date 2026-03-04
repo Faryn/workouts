@@ -49,6 +49,14 @@ just dev-api
 just dev-web
 ```
 
+## Release safety checks
+```bash
+just release-check
+# backup-specific checks
+just backup-health
+just restore-drill
+```
+
 ## LAN deployment (Docker Compose)
 ```bash
 cd infra
