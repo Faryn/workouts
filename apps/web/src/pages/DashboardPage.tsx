@@ -60,7 +60,7 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
           <li key={`${item.kind}-${item.id}`} style={{ marginBottom: 6 }}>
             {item.date} · {item.kind === 'strength' ? `🏋️ ${item.template_name} (${item.status})` : `🏃 ${item.type} (${item.duration_seconds}s)`}
             {item.kind === 'strength' && item.status === 'planned' && (
-              <a href={`/sessions?scheduled_id=${item.id}`} style={{ marginLeft: 8 }}>Start</a>
+              <a className="button-link" href={`/sessions?scheduled_id=${item.id}`} style={{ marginLeft: 8 }}>Start</a>
             )}
           </li>
         ))}

@@ -64,6 +64,14 @@ def mark_skipped(db: Session, scheduled_id: str) -> ScheduledWorkout | None:
     return schedule_repo.save(db, row)
 
 
+def delete_scheduled(db: Session, scheduled_id: str) -> bool:
+    row = schedule_repo.get(db, scheduled_id)
+    if not row:
+        return False
+    schedule_repo.delete(db, row)
+    return True
+
+
 def create_scheduled_pattern(
     db: Session,
     athlete_id: str,

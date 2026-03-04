@@ -121,3 +121,19 @@ def copy_scheduled(
     if not copied:
         raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
     return schedule_service.as_dict(copied)
+
+
+@router.delete('/{scheduled_id}')
+def delete_scheduled(
+    scheduled_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    row = db.get(ScheduledWorkout, scheduled_id)
+    if not row:
+        raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
+    ensure_self_or_assigned(db, current_user, row.athlete_id)
+    ok = schedule_service.delete_scheduled(db, scheduled_id)
+    if not ok:
+        raise AppError(code='scheduled_not_found', message='Scheduled workout not found', status_code=404)
+    return {'ok': True}

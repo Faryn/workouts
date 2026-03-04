@@ -24,6 +24,7 @@
 - `POST /v1/scheduled-workouts/{scheduled_id}/move`
 - `POST /v1/scheduled-workouts/{scheduled_id}/copy`
 - `POST /v1/scheduled-workouts/{scheduled_id}/skip`
+- `DELETE /v1/scheduled-workouts/{scheduled_id}`
 - `GET /v1/scheduled-workouts/calendar?athlete_id=...&from_date=...&to_date=...` (merged strength + cardio feed)
 
 ## Sessions

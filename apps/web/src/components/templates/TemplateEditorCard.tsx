@@ -42,6 +42,7 @@ export function TemplateEditorCard(props: {
 
   const [queries, setQueries] = useState<string[]>([])
   const [creatingIndex, setCreatingIndex] = useState<number | null>(null)
+  const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
 
   useEffect(() => {
     setQueries(editing.exercises.map(ex => nameById.get(ex.exercise_id) ?? ''))
@@ -71,6 +72,8 @@ export function TemplateEditorCard(props: {
           .slice(0, 6)
 
         const exact = props.exerciseOptions.find(o => o.name.toLowerCase() === query.trim().toLowerCase())
+        const selectedName = nameById.get(ex.exercise_id)
+        const showSuggestions = focusedIndex === idx && query.trim().length > 0 && query.trim() !== (selectedName ?? '')
 
         return (
           <div key={`${ex.exercise_id}-${idx}`} className="row" style={{ marginBottom: 8, alignItems: 'center' }}>
@@ -82,10 +85,12 @@ export function TemplateEditorCard(props: {
                   next[idx] = e.target.value
                   setQueries(next)
                 }}
+                onFocus={() => setFocusedIndex(idx)}
+                onBlur={() => window.setTimeout(() => setFocusedIndex(prev => (prev === idx ? null : prev)), 120)}
                 placeholder="Exercise (type to search)"
                 style={{ width: '100%' }}
               />
-              {query.trim().length > 0 && (
+              {showSuggestions && (
                 <div className="suggestions">
                   {ranked.map(({ opt }) => (
                     <button
@@ -97,6 +102,7 @@ export function TemplateEditorCard(props: {
                         const next = [...queries]
                         next[idx] = opt.name
                         setQueries(next)
+                        setFocusedIndex(null)
                       }}
                     >
                       {opt.name}
@@ -117,6 +123,7 @@ export function TemplateEditorCard(props: {
                           const next = [...queries]
                           next[idx] = created.name
                           setQueries(next)
+                          setFocusedIndex(null)
                         } finally {
                           setCreatingIndex(null)
                         }

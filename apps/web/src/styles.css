@@ -24,6 +24,7 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 input, button, select {
   min-height: 44px;
   padding: 10px 12px;
+  font-size: 1rem;
   border-radius: 10px;
   border: 1px solid #4b5563;
   background: var(--surface);
@@ -47,6 +48,20 @@ button.primary {
   font-weight: 700;
 }
 a { color: var(--accent-2); text-decoration: none; }
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #4b5563;
+  background: var(--surface);
+  color: var(--text);
+  line-height: 1;
+}
+.button-link:hover { border-color: var(--accent-2); }
 .small { color: var(--muted); font-size: 0.9rem; }
 h1,h2,h3 { margin-top: 0; letter-spacing: 0.2px; }
 ul { margin: 0; padding-left: 18px; }
@@ -83,11 +98,13 @@ ul { margin: 0; padding-left: 18px; }
   border: 0;
   border-bottom: 1px solid #1f2937;
   border-radius: 0;
-  background: transparent;
-  padding: 8px 10px;
+  background: #0b1220;
+  padding: 6px 10px;
+  min-height: 34px;
+  font-size: 0.95rem;
 }
 
-.suggestion-item:hover { background: #111827; }
+.suggestion-item:hover { background: #0f1a2d; }
 
 .suggestion-create {
   color: #93c5fd;

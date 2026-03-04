@@ -44,8 +44,7 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
   const [intervalDays, setIntervalDays] = useState(2)
   const [weekday, setWeekday] = useState('tuesday')
 
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState(iso(new Date()))
   const [err, setErr] = useState<string | null>(null)
 
   const [bulkFrom, setBulkFrom] = useState('')
@@ -54,7 +53,6 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
   const [shiftDays, setShiftDays] = useState(7)
 
   const [baseMonth, setBaseMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
-
   const filtersKey = `schedule-filters:${athleteId}`
 
   const templateById = useMemo(() => {
@@ -75,13 +73,24 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
     return m
   }, [exercises])
 
-  const selected = useMemo(() => items.find(x => x.id === selectedId) ?? null, [items, selectedId])
-
   const range = useMemo(() => {
     const from = addMonths(baseMonth, -2)
     const to = addMonths(baseMonth, 4)
     return { from: iso(from), to: iso(new Date(to.getFullYear(), to.getMonth() + 1, 0)) }
   }, [baseMonth])
+
+  const visibleWeeks = (() => {
+    const start = weekStartMonday(new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1))
+    return Array.from({ length: 4 }, (_, i) => {
+      const weekStart = new Date(start)
+      weekStart.setDate(start.getDate() + i * 7)
+      return Array.from({ length: 7 }, (_, d) => {
+        const day = new Date(weekStart)
+        day.setDate(weekStart.getDate() + d)
+        return day
+      })
+    })
+  })()
 
   async function load() {
     setErr(null)
@@ -97,7 +106,6 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
       setItems(s)
       setCalendarItems(c)
       if (!templateId && t[0]) setTemplateId(t[0].id)
-      if (!selectedId && s[0]) setSelectedId(s[0].id)
     } catch (e: unknown) {
       setErr(errorMessage(e))
     }
@@ -143,25 +151,27 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
     await load()
   }
 
-  async function moveSelected() {
-    if (!selected) return
-    const to = prompt('Move to date (YYYY-MM-DD):')
+  async function moveById(id: string, currentDate: string) {
+    const to = prompt('Move to date (YYYY-MM-DD):', currentDate)
     if (!to) return
-    await api.moveScheduled(token, selected.id, to)
+    await api.moveScheduled(token, id, to)
     await load()
   }
 
-  async function copySelected() {
-    if (!selected) return
-    const to = prompt('Copy to date (YYYY-MM-DD):')
+  async function copyById(id: string, currentDate: string) {
+    const to = prompt('Copy to date (YYYY-MM-DD):', currentDate)
     if (!to) return
-    await api.copyScheduled(token, selected.id, to)
+    await api.copyScheduled(token, id, to)
     await load()
   }
 
-  async function skipSelected() {
-    if (!selected) return
-    await api.skipScheduled(token, selected.id)
+  async function skipById(id: string) {
+    await api.skipScheduled(token, id)
+    await load()
+  }
+
+  async function deleteById(id: string) {
+    await api.deleteScheduled(token, id)
     await load()
   }
 
@@ -200,21 +210,6 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
     await load()
   }
 
-  const dayItems = selectedDate ? calendarItems.filter(x => x.date === selectedDate) : []
-
-  const visibleWeeks = (() => {
-    const start = weekStartMonday(new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1))
-    return Array.from({ length: 4 }, (_, i) => {
-      const weekStart = new Date(start)
-      weekStart.setDate(start.getDate() + i * 7)
-      return Array.from({ length: 7 }, (_, d) => {
-        const day = new Date(weekStart)
-        day.setDate(weekStart.getDate() + d)
-        return day
-      })
-    })
-  })()
-
   function dayStatusClass(dateStr: string) {
     const day = calendarItems.filter(x => x.date === dateStr)
     if (day.some(x => x.kind === 'strength' && x.status === 'completed')) return '#34d399'
@@ -228,6 +223,16 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
     return calendarItems.some(x => x.date === dateStr)
   }
 
+  const selectedStrength = items
+    .filter(i => i.date === selectedDate)
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  const selectedCardio = calendarItems.filter(
+    (i): i is Extract<CalendarItem, { kind: 'cardio' }> => i.kind === 'cardio' && i.date === selectedDate,
+  )
+
+  const today = iso(new Date())
+
   return (
     <>
       <div className="card">
@@ -237,7 +242,7 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
             {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} />
-          <button onClick={() => void create()} disabled={!templateId || !date}>Add once</button>
+          <button onClick={() => void create()} disabled={!templateId || !date}>Add</button>
         </div>
 
         <details className="advanced-panel" style={{ marginTop: 12 }}>
@@ -301,6 +306,7 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
           <div key={widx} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 8 }}>
             {week.map((d) => {
               const ds = iso(d)
+              const isToday = ds === today
               return (
                 <button
                   key={ds}
@@ -309,7 +315,12 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
                     minHeight: 64,
                     padding: 8,
                     borderRadius: 10,
-                    border: selectedDate === ds ? '2px solid var(--accent)' : `1px solid ${dayStatusClass(ds)}`,
+                    border: selectedDate === ds
+                      ? '2px solid var(--accent)'
+                      : isToday
+                        ? '2px solid var(--accent-2)'
+                        : `1px solid ${dayStatusClass(ds)}`,
+                    background: isToday ? 'rgba(59,130,246,0.12)' : undefined,
                     position: 'relative',
                     textAlign: 'left',
                   }}
@@ -334,91 +345,56 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
             })}
           </div>
         ))}
-
-        {selectedDate && (
-          <div style={{ marginTop: 12 }}>
-            <h4>{selectedDate}</h4>
-            <ul>
-              {dayItems.map(item => (
-                <li key={`${item.kind}-${item.id}`}>
-                  {item.kind === 'strength' ? `🏋️ ${item.template_name} (${item.status})` : `🏃 ${item.type} (${item.duration_seconds}s)`}
-                </li>
-              ))}
-              {dayItems.length === 0 && <li className="small">No entries.</li>}
-            </ul>
-          </div>
-        )}
       </div>
 
       <div className="card">
-        <h3>Scheduled Entries</h3>
-        <ul>
-          {items.map(it => {
-            const tpl = templateById[it.template_id]
-            return (
-              <li key={it.id} style={{ marginBottom: 10 }}>
-                <div className="row" style={{ justifyContent: 'space-between' }}>
-                  <span>{it.date} · {templateNameById[it.template_id] ?? it.template_id} · {it.status}</span>
-                  <div className="row">
-                    <button onClick={() => setSelectedId(it.id)}>Details</button>
-                    {it.status === 'planned' && <a href={`/sessions?scheduled_id=${it.id}`}>Start</a>}
-                  </div>
-                </div>
-                {tpl && (
-                  <details>
-                    <summary className="small" style={{ cursor: 'pointer' }}>Show exercises</summary>
-                    <ul style={{ marginTop: 6 }}>
-                      {tpl.exercises
-                        .slice()
-                        .sort((a, b) => a.sort_order - b.sort_order)
-                        .map(ex => (
-                          <li key={ex.id} className="small" style={{ marginBottom: 4 }}>
-                            {exerciseNameById[ex.exercise_id] ?? ex.exercise_id} · {ex.planned_sets} × {ex.planned_reps}
-                            {ex.planned_weight != null ? ` · ${ex.planned_weight} kg` : ''}
-                          </li>
-                        ))}
-                    </ul>
-                  </details>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      </div>
+        <h3>{selectedDate}</h3>
+        {selectedStrength.length === 0 && selectedCardio.length === 0 && <p className="small">No entries.</p>}
 
-      {selected && (
-        <div className="card">
-          <h3>Entry Details</h3>
-          <p><strong>Date:</strong> {selected.date}</p>
-          <p><strong>Template:</strong> {templateNameById[selected.template_id] ?? selected.template_id}</p>
-          <p><strong>Status:</strong> {selected.status}</p>
+        {selectedStrength.map(it => {
+          const tpl = templateById[it.template_id]
+          return (
+            <div key={it.id} className="card" style={{ marginBottom: 10 }}>
+              <div className="row" style={{ justifyContent: 'space-between' }}>
+                <strong>{templateNameById[it.template_id] ?? it.template_id}</strong>
+                <span className="small">{it.status}</span>
+              </div>
 
-          {templateById[selected.template_id] && (
-            <>
-              <h4>Contained exercises</h4>
-              <ul>
-                {templateById[selected.template_id].exercises
-                  .slice()
-                  .sort((a, b) => a.sort_order - b.sort_order)
-                  .map(ex => (
-                    <li key={ex.id} className="small" style={{ marginBottom: 4 }}>
-                      {exerciseNameById[ex.exercise_id] ?? ex.exercise_id} · {ex.planned_sets} × {ex.planned_reps}
-                      {ex.planned_weight != null ? ` · ${ex.planned_weight} kg` : ''}
-                      {ex.rest_seconds != null ? ` · rest ${ex.rest_seconds}s` : ''}
-                    </li>
-                  ))}
-              </ul>
-            </>
-          )}
+              {tpl && (
+                <details style={{ marginTop: 8 }}>
+                  <summary className="small" style={{ cursor: 'pointer' }}>Exercises</summary>
+                  <ul style={{ marginTop: 6 }}>
+                    {tpl.exercises
+                      .slice()
+                      .sort((a, b) => a.sort_order - b.sort_order)
+                      .map(ex => (
+                        <li key={ex.id} className="small" style={{ marginBottom: 4 }}>
+                          {exerciseNameById[ex.exercise_id] ?? ex.exercise_id} · {ex.planned_sets} × {ex.planned_reps}
+                          {ex.planned_weight != null ? ` · ${ex.planned_weight} kg` : ''}
+                          {ex.rest_seconds != null ? ` · rest ${ex.rest_seconds}s` : ''}
+                        </li>
+                      ))}
+                  </ul>
+                </details>
+              )}
 
-          <div className="row">
-            {selected.status === 'planned' && <a href={`/sessions?scheduled_id=${selected.id}`}>Start workout</a>}
-            <button onClick={() => void moveSelected()}>Move</button>
-            <button onClick={() => void copySelected()}>Copy</button>
-            {selected.status === 'planned' && <button onClick={() => void skipSelected()}>Mark skipped</button>}
+              <div className="row" style={{ marginTop: 8 }}>
+                {it.status === 'planned' && <a className="button-link" href={`/sessions?scheduled_id=${it.id}`}>Start</a>}
+                <button onClick={() => void moveById(it.id, it.date)}>Move</button>
+                <button onClick={() => void copyById(it.id, it.date)}>Copy</button>
+                {it.status === 'planned' && <button onClick={() => void skipById(it.id)}>Skip</button>}
+                <button onClick={() => void deleteById(it.id)}>Delete</button>
+              </div>
+            </div>
+          )
+        })}
+
+        {selectedCardio.map(item => (
+          <div key={item.id} className="small" style={{ marginBottom: 8 }}>
+            🏃 {item.type} ({item.duration_seconds}s)
           </div>
-        </div>
-      )}
+        ))}
+      </div>
     </>
   )
 }

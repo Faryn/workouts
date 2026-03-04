@@ -46,5 +46,5 @@ test('trainer happy path: dashboard export + schedule screen loads', async ({ pa
 
   await page.getByRole('link', { name: 'Week' }).click()
   await expect(page.getByRole('heading', { name: 'Schedule', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Add once' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Add' })).toBeVisible()
 })

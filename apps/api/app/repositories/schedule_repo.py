@@ -42,3 +42,8 @@ def save(db: Session, row: ScheduledWorkout) -> ScheduledWorkout:
     db.commit()
     db.refresh(row)
     return row
+
+
+def delete(db: Session, row: ScheduledWorkout) -> None:
+    db.delete(row)
+    db.commit()

@@ -49,7 +49,12 @@ export function InProgressSession(props: {
       for (const st of ex.sets ?? []) {
         const k = setKey(ex.id, st.set_number)
         if (k === props.activeSetKey) {
-          return { loggedExerciseId: ex.id, setNumber: st.set_number, exerciseName: props.exerciseNameById[ex.exercise_id] ?? ex.exercise_id }
+          return {
+            loggedExerciseId: ex.id,
+            setNumber: st.set_number,
+            exerciseName: props.exerciseNameById[ex.exercise_id] ?? ex.exercise_id,
+            usesWeight: st.planned_weight != null || st.actual_weight != null,
+          }
         }
       }
     }
@@ -78,6 +83,7 @@ export function InProgressSession(props: {
               actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.planned_reps != null ? String(st.planned_reps) : ''),
               status: st.status === 'skipped' ? 'skipped' : 'done',
             }
+            const usesWeight = st.planned_weight != null || draft.actual_weight !== ''
             return (
               <button
                 key={k}
@@ -87,46 +93,64 @@ export function InProgressSession(props: {
                 onClick={() => props.onSelectSet(k)}
               >
                 <span><strong>Set {st.set_number}</strong></span>
-                <span className="small">{st.planned_weight ?? '-'} kg × {st.planned_reps ?? '-'} reps</span>
-                <span className="small">{draft.actual_weight || '-'} / {draft.actual_reps || '-'}</span>
+                <span className="small">
+                  {usesWeight
+                    ? `${st.planned_weight ?? '-'} kg × ${st.planned_reps ?? '-'} reps`
+                    : `${st.planned_reps ?? '-'} reps`}
+                </span>
+                <span className="small">
+                  {usesWeight
+                    ? `${draft.actual_weight || '-'} kg / ${draft.actual_reps || '-'} reps`
+                    : `${draft.actual_reps || '-'} reps`}
+                </span>
               </button>
             )
           })}
         </div>
       ))}
 
-      {props.restTimer}
+      <div className="sticky-set-actions" style={{ alignItems: 'stretch' }}>
+        {active && activeDraft && (
+          <>
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <strong>{active.exerciseName}</strong>
+              <span className="small">Set {active.setNumber}</span>
+            </div>
 
-      {active && activeDraft && (
-        <div className="sticky-set-actions" style={{ alignItems: 'stretch' }}>
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <strong>{active.exerciseName}</strong>
-            <span className="small">Set {active.setNumber}</span>
-          </div>
+            <div className="row" style={{ marginBottom: 8 }}>
+              {active.usesWeight && (
+                <div style={{ flex: 1, minWidth: 120 }}>
+                  <div className="small" style={{ marginBottom: 4 }}>Weight (kg)</div>
+                  <input
+                    value={activeDraft.actual_weight}
+                    onChange={e => props.onChangeDraft(setKey(active.loggedExerciseId, active.setNumber), { ...activeDraft, actual_weight: e.target.value })}
+                    aria-label="Weight"
+                    placeholder="kg"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 120 }}>
+                <div className="small" style={{ marginBottom: 4 }}>Reps</div>
+                <input
+                  value={activeDraft.actual_reps}
+                  onChange={e => props.onChangeDraft(setKey(active.loggedExerciseId, active.setNumber), { ...activeDraft, actual_reps: e.target.value })}
+                  aria-label="Repetitions"
+                  placeholder="reps"
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
 
-          <div className="row" style={{ marginBottom: 8 }}>
-            <input
-              value={activeDraft.actual_weight}
-              onChange={e => props.onChangeDraft(setKey(active.loggedExerciseId, active.setNumber), { ...activeDraft, actual_weight: e.target.value })}
-              aria-label="Weight"
-              placeholder="kg"
-              style={{ flex: 1, minWidth: 120 }}
-            />
-            <input
-              value={activeDraft.actual_reps}
-              onChange={e => props.onChangeDraft(setKey(active.loggedExerciseId, active.setNumber), { ...activeDraft, actual_reps: e.target.value })}
-              aria-label="Repetitions"
-              placeholder="reps"
-              style={{ flex: 1, minWidth: 120 }}
-            />
-          </div>
+            <div className="row" style={{ gap: 10, marginBottom: 8 }}>
+              <button className="primary" style={{ flex: 1, minHeight: 52 }} onClick={() => props.onDone(active.loggedExerciseId, active.setNumber)}>Done</button>
+              <button style={{ flex: 1, minHeight: 52 }} onClick={() => props.onSkip(active.loggedExerciseId, active.setNumber)}>Skip</button>
+            </div>
+          </>
+        )}
 
-          <div className="row" style={{ gap: 10 }}>
-            <button className="primary" style={{ flex: 1, minHeight: 52 }} onClick={() => props.onDone(active.loggedExerciseId, active.setNumber)}>Done</button>
-            <button style={{ flex: 1, minHeight: 52 }} onClick={() => props.onSkip(active.loggedExerciseId, active.setNumber)}>Skip</button>
-          </div>
-        </div>
-      )}
+        <div>{props.restTimer}</div>
+      </div>
 
       <div className="row">
         <button onClick={props.onFinish}>Finish session</button>

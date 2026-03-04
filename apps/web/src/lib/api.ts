@@ -219,6 +219,7 @@ export const api = {
   moveScheduled: (token: string, id: string, to_date: string) => req<ScheduledWorkout>(`/v1/scheduled-workouts/${id}/move`, { method: 'POST', body: JSON.stringify({ to_date }) }, token),
   copyScheduled: (token: string, id: string, to_date: string) => req<ScheduledWorkout>(`/v1/scheduled-workouts/${id}/copy`, { method: 'POST', body: JSON.stringify({ to_date }) }, token),
   skipScheduled: (token: string, id: string) => req<ScheduledWorkout>(`/v1/scheduled-workouts/${id}/skip`, { method: 'POST' }, token),
+  deleteScheduled: (token: string, id: string) => req<{ ok: boolean }>(`/v1/scheduled-workouts/${id}`, { method: 'DELETE' }, token),
 
   listSessions: (token: string, athleteId: string) => req<SessionHistoryItem[]>(`/v1/sessions/?athlete_id=${athleteId}`, {}, token),
   latestInProgressSession: (token: string, athleteId: string) => req<SessionDetail | null>(`/v1/sessions/in-progress?athlete_id=${athleteId}`, {}, token),

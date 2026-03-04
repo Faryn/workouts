@@ -7,7 +7,7 @@ Implemented slices include:
 - Auth (login + me) with optional athlete-scoped trainer/admin API tokens
 - Exercise CRUD with visibility/ownership filtering
 - Template CRUD with ordered template exercises
-- Scheduling (create/move/copy/skip + recurring patterns)
+- Scheduling (create/move/copy/skip/delete + recurring patterns)
 - Calendar feed (strength + cardio merged) and compact weekly calendar UI
 - Session flow (start, log sets, autosave, finish, history, latest in-progress)
 - Cardio logging
@@ -37,6 +37,7 @@ just test-api
 just lint-api
 just typecheck-api
 cd apps/web && npm run build
+cd apps/web && npm run test:e2e
 ```
 
 ## Dev flow shortcuts (just)
