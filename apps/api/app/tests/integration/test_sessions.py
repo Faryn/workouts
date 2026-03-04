@@ -77,6 +77,57 @@ def test_session_log_set_keeps_planned_and_stores_actual(client, seeded_user, db
     assert s['actual_reps'] == 4
 
 
+def test_template_changes_do_not_mutate_existing_session_planned_values(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+
+    ex = Exercise(name='Overhead Press', type='strength', owner_scope='global')
+    db_session.add(ex); db_session.commit(); db_session.refresh(ex)
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    created = client.post('/v1/templates/', json={
+        'name': 'Press Day',
+        'exercises': [
+            {
+                'exercise_id': ex.id,
+                'planned_sets': 1,
+                'planned_reps': 5,
+                'planned_weight': 50.0,
+            }
+        ],
+    }, headers=headers)
+    assert created.status_code == 200
+    tid = created.json()['id']
+
+    started = client.post('/v1/sessions/start', json={'template_id': tid}, headers=headers)
+    assert started.status_code == 200
+    session_id = started.json()['id']
+    logged_exercise_id = started.json()['logged_exercises'][0]['id']
+
+    patch = client.patch(f'/v1/templates/{tid}', json={
+        'exercises': [
+            {
+                'exercise_id': ex.id,
+                'planned_sets': 1,
+                'planned_reps': 3,
+                'planned_weight': 60.0,
+            }
+        ]
+    }, headers=headers)
+    assert patch.status_code == 200
+
+    set_log = client.post(f'/v1/sessions/{session_id}/sets', json={
+        'logged_exercise_id': logged_exercise_id,
+        'set_number': 1,
+        'actual_weight': 52.5,
+        'actual_reps': 5,
+        'status': 'done',
+    }, headers=headers)
+    assert set_log.status_code == 200
+    payload = set_log.json()
+    assert payload['planned_reps'] == 5
+    assert payload['planned_weight'] == 50.0
+
+
 def test_session_finish_marks_scheduled_completed(client, seeded_user, db_session):
     from app.models.exercise import Exercise
     from app.models.template import WorkoutTemplate, WorkoutTemplateExercise

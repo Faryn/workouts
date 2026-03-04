@@ -2,8 +2,8 @@
 
 ## Layering
 - `app/api/v1/*` — HTTP layer (request parsing, dependencies, response models)
-- `app/services/*` — business orchestration (templates, scheduling, sessions)
-- `app/repositories/*` — DB access primitives reused by services
+- `app/services/*` — business orchestration (templates, scheduling, sessions, cardio, stats)
+- `app/repositories/*` — DB access primitives reused by services (templates, schedule, sessions, cardio)
 - `app/models/*` — persistence models (SQLAlchemy)
 - `app/schemas/*` — API contracts (Pydantic)
 - `app/core/permissions.py` — centralized access checks

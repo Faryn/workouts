@@ -18,6 +18,18 @@ dev-api:
 dev-web:
   cd {{web_dir}} && npm install && npm run dev
 
+test-web-ui:
+  cd {{web_dir}} && npm install && npx playwright install chromium && npm run test:e2e
+
+lan-up:
+  cd infra && docker compose up -d --build
+
+lan-down:
+  cd infra && docker compose down
+
+lan-logs:
+  cd infra && docker compose logs -f --tail=200
+
 test-api:
   cd {{api_dir}} && PYTHONPATH=. .venv/bin/pytest
 

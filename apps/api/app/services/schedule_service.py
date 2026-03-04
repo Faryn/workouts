@@ -54,3 +54,11 @@ def copy_scheduled(db: Session, scheduled_id: str, to_date: date) -> ScheduledWo
         on_date=to_date,
         notes=row.notes,
     )
+
+
+def mark_skipped(db: Session, scheduled_id: str) -> ScheduledWorkout | None:
+    row = schedule_repo.get(db, scheduled_id)
+    if not row:
+        return None
+    row.status = 'skipped'
+    return schedule_repo.save(db, row)

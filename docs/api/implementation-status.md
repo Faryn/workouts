@@ -5,26 +5,40 @@
 - `POST /v1/auth/login`
 - `GET /v1/auth/me`
 - `GET /v1/exercises/` (auth required, basic visibility filtering)
+
+## Templates
 - `GET /v1/templates/`
 - `POST /v1/templates/`
 - `PATCH /v1/templates/{template_id}`
 - `DELETE /v1/templates/{template_id}`
+- Supports ordered template exercises with planned sets/reps/weight/rest/notes.
+
+## Scheduling + Calendar
 - `GET /v1/scheduled-workouts/?athlete_id=...`
 - `POST /v1/scheduled-workouts/`
 - `POST /v1/scheduled-workouts/{scheduled_id}/move`
 - `POST /v1/scheduled-workouts/{scheduled_id}/copy`
+- `GET /v1/scheduled-workouts/calendar?athlete_id=...&from_date=...&to_date=...` (merged strength + cardio feed)
 
-## Implemented now (sessions slice)
+## Sessions
+- `GET /v1/sessions/?athlete_id=...` (session history list)
+- `GET /v1/sessions/{session_id}` (session detail)
+- `GET /v1/sessions/in-progress?athlete_id=...` (latest resumable in-progress session)
 - `POST /v1/sessions/start` (from scheduled workout or template)
 - `POST /v1/sessions/{session_id}/sets` (set actual logging while keeping planned values)
-- `POST /v1/sessions/{session_id}/finish` (marks session complete and scheduled workout complete if linked)
+- `POST /v1/sessions/{session_id}/finish` (marks session complete and linked scheduled workout complete)
 
-## Scaffolded placeholders (not fully implemented)
-- cardio sessions
-- stats
-- exports
+## Cardio + Stats
+- `GET /v1/cardio-sessions/?athlete_id=...`
+- `POST /v1/cardio-sessions/`
+- `GET /v1/stats/exercises/{exercise_id}/weights-over-time?athlete_id=...`
+
+## Exports
+- `GET /v1/exports/sessions.csv?athlete_id=...`
+- `GET /v1/exports/exercise-history.csv?athlete_id=...`
+- `GET /v1/exports/cardio.csv?athlete_id=...`
 
 ## Notes
 - Documentation distinguishes implemented vs planned to avoid capability drift.
-- Error responses now support structured shape for app-level authorization/domain errors:
+- Error responses support structured shape for app-level authorization/domain errors:
   - `{ "error": { "code": string, "message": string, "details": object } }`

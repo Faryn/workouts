@@ -10,6 +10,29 @@ from app.services import session_service
 router = APIRouter()
 
 
+@router.get('/')
+def list_sessions(
+    athlete_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return session_service.list_sessions(db, current_user, athlete_id)
+
+
+@router.get('/in-progress')
+def latest_in_progress(
+    athlete_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return session_service.latest_in_progress_session(db, current_user, athlete_id)
+
+
+@router.get('/{session_id}', response_model=SessionOut)
+def get_session(session_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return session_service.get_session_detail(db, current_user, session_id)
+
+
 @router.post('/start', response_model=SessionOut)
 def start_session(payload: SessionStartPayload, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     data = session_service.start_session(db, current_user, payload.scheduled_workout_id, payload.template_id)

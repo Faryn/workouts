@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { api } from '../lib/api'
+import { errorMessage } from '../lib/errors'
 
 export function LoginPage({ onToken }: { onToken: (token: string) => void }) {
   const [email, setEmail] = useState('athlete@example.com')
-  const [password, setPassword] = useState('secret123')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   async function submit(e: React.FormEvent) {
@@ -12,8 +13,8 @@ export function LoginPage({ onToken }: { onToken: (token: string) => void }) {
     try {
       const res = await api.login(email, password)
       onToken(res.access_token)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      setError(errorMessage(err))
     }
   }
 

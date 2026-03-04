@@ -12,22 +12,40 @@ router = APIRouter()
 
 @router.get('/', response_model=list[TemplateOut])
 def list_templates(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    rows = template_service.list_templates(db, current_user)
-    return [TemplateOut(id=t.id, name=t.name, notes=t.notes, owner_id=t.owner_id) for t in rows]
+    return template_service.list_templates(db, current_user)
 
 
 @router.post('/', response_model=TemplateOut)
 def create_template(payload: TemplateCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    t = template_service.create_template(db, current_user, payload.name, payload.notes)
-    return TemplateOut(id=t.id, name=t.name, notes=t.notes, owner_id=t.owner_id)
+    try:
+        return template_service.create_template(
+            db,
+            current_user,
+            payload.name,
+            payload.notes,
+            [e.model_dump() for e in payload.exercises],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.patch('/{template_id}', response_model=TemplateOut)
 def patch_template(template_id: str, payload: TemplatePatch, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    t = template_service.patch_template(db, current_user, template_id, payload.name, payload.notes)
+    try:
+        t = template_service.patch_template(
+            db,
+            current_user,
+            template_id,
+            payload.name,
+            payload.notes,
+            [e.model_dump() for e in payload.exercises] if payload.exercises is not None else None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     if not t:
         raise HTTPException(status_code=404, detail='Template not found')
-    return TemplateOut(id=t.id, name=t.name, notes=t.notes, owner_id=t.owner_id)
+    return t
 
 
 @router.delete('/{template_id}')

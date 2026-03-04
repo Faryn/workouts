@@ -19,11 +19,13 @@ This project follows TDD-oriented practice for implemented functionality:
 - Session finish marks linked scheduled workout completed
 - Trainer can access assigned athlete schedule
 - Trainer is forbidden from unassigned athlete schedule access (structured error shape)
+- Cardio create/list flow
+- Stats weights-over-time endpoint over completed session logs
 
 ## Test levels
 - **Unit tests:** pure business rules (to expand as services are added)
 - **Integration tests:** API + DB interaction (current focus)
-- **E2E tests:** planned for trainer/athlete core workflows
+- **E2E/interface tests:** Playwright UI tests for key frontend flows
 
 ## Run tests
 From `apps/api`:
@@ -31,6 +33,21 @@ From `apps/api`:
 ```bash
 . .venv/bin/activate
 pytest
+```
+
+## Web interface tests
+From `apps/web`:
+
+```bash
+npm install
+npx playwright install chromium
+npm run test:e2e
+```
+
+Or from repo root:
+
+```bash
+just test-web-ui
 ```
 
 ## Rule for future changes

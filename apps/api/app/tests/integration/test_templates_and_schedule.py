@@ -1,32 +1,115 @@
-from datetime import date
-
-
 def _auth(client, email, password):
     res = client.post('/v1/auth/login', json={'email': email, 'password': password})
     assert res.status_code == 200
     return {'Authorization': f"Bearer {res.json()['access_token']}"}
 
 
-def test_templates_crud_owner_scoped(client, seeded_user):
+def test_templates_crud_owner_scoped_with_exercises(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+
+    bench = Exercise(name='Bench Press', type='strength', owner_scope='global')
+    squat = Exercise(name='Squat', type='strength', owner_scope='global')
+    db_session.add_all([bench, squat])
+    db_session.commit()
+    db_session.refresh(bench)
+    db_session.refresh(squat)
+
     headers = _auth(client, seeded_user.email, 'secret123')
 
-    create = client.post('/v1/templates/', json={'name': 'Upper A', 'notes': 'push focus'}, headers=headers)
+    create = client.post(
+        '/v1/templates/',
+        json={
+            'name': 'Upper A',
+            'notes': 'push focus',
+            'exercises': [
+                {
+                    'exercise_id': bench.id,
+                    'sort_order': 1,
+                    'planned_sets': 3,
+                    'planned_reps': 5,
+                    'planned_weight': 80.0,
+                    'rest_seconds': 120,
+                },
+                {
+                    'exercise_id': squat.id,
+                    'sort_order': 2,
+                    'planned_sets': 2,
+                    'planned_reps': 8,
+                    'rest_seconds': 90,
+                    'notes': 'light backoff',
+                },
+            ],
+        },
+        headers=headers,
+    )
     assert create.status_code == 200
-    tid = create.json()['id']
+    created = create.json()
+    tid = created['id']
+    assert len(created['exercises']) == 2
+    assert created['exercises'][0]['planned_reps'] == 5
 
     listed = client.get('/v1/templates/', headers=headers)
     assert listed.status_code == 200
-    assert any(t['id'] == tid for t in listed.json())
+    found = next(t for t in listed.json() if t['id'] == tid)
+    assert len(found['exercises']) == 2
 
-    patched = client.patch(f'/v1/templates/{tid}', json={'name': 'Upper A v2'}, headers=headers)
+    patched = client.patch(
+        f'/v1/templates/{tid}',
+        json={
+            'name': 'Upper A v2',
+            'exercises': [
+                {
+                    'exercise_id': bench.id,
+                    'sort_order': 1,
+                    'planned_sets': 4,
+                    'planned_reps': 4,
+                    'planned_weight': 82.5,
+                }
+            ],
+        },
+        headers=headers,
+    )
     assert patched.status_code == 200
     assert patched.json()['name'] == 'Upper A v2'
+    assert len(patched.json()['exercises']) == 1
+    assert patched.json()['exercises'][0]['planned_sets'] == 4
 
     deleted = client.delete(f'/v1/templates/{tid}', headers=headers)
     assert deleted.status_code == 200
 
     listed2 = client.get('/v1/templates/', headers=headers)
     assert all(t['id'] != tid for t in listed2.json())
+
+
+def test_template_create_rejects_invisible_exercise(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+
+    other_owned = Exercise(
+        name='Private Other Lift',
+        type='strength',
+        owner_scope='athlete',
+        owner_id='someone-else',
+    )
+    db_session.add(other_owned)
+    db_session.commit()
+    db_session.refresh(other_owned)
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    create = client.post(
+        '/v1/templates/',
+        json={
+            'name': 'Bad Template',
+            'exercises': [
+                {
+                    'exercise_id': other_owned.id,
+                    'planned_sets': 3,
+                    'planned_reps': 5,
+                }
+            ],
+        },
+        headers=headers,
+    )
+    assert create.status_code == 400
 
 
 def test_schedule_create_move_copy_for_own_items(client, seeded_user):
@@ -49,6 +132,10 @@ def test_schedule_create_move_copy_for_own_items(client, seeded_user):
     assert copy.status_code == 200
     copied_id = copy.json()['id']
     assert copied_id != sid
+
+    skip = client.post(f'/v1/scheduled-workouts/{sid}/skip', headers=headers)
+    assert skip.status_code == 200
+    assert skip.json()['status'] == 'skipped'
 
     listed = client.get('/v1/scheduled-workouts/?athlete_id=' + seeded_user.id, headers=headers)
     assert listed.status_code == 200
