@@ -7,8 +7,8 @@ Implemented slices include:
 - Auth (login + me)
 - Exercise listing with visibility filtering
 - Template CRUD with ordered template exercises
-- Scheduling (create/move/copy)
-- Calendar feed (strength + cardio merged)
+- Scheduling (create/move/copy/skip + recurring patterns)
+- Calendar feed (strength + cardio merged) and compact weekly calendar UI
 - Session flow (start, log sets, finish, history, latest in-progress)
 - Cardio logging
 - Weights-over-time stats

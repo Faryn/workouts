@@ -4,6 +4,7 @@
 - `GET /v1/health`
 - `POST /v1/auth/login`
 - `GET /v1/auth/me`
+- `GET /v1/auth/assigned-athletes` (trainer/admin athlete context helper)
 - `GET /v1/exercises/` (auth required, basic visibility filtering)
 
 ## Templates
@@ -16,8 +17,10 @@
 ## Scheduling + Calendar
 - `GET /v1/scheduled-workouts/?athlete_id=...`
 - `POST /v1/scheduled-workouts/`
+- `POST /v1/scheduled-workouts/pattern` (interval days or weekday recurring schedule between start/end)
 - `POST /v1/scheduled-workouts/{scheduled_id}/move`
 - `POST /v1/scheduled-workouts/{scheduled_id}/copy`
+- `POST /v1/scheduled-workouts/{scheduled_id}/skip`
 - `GET /v1/scheduled-workouts/calendar?athlete_id=...&from_date=...&to_date=...` (merged strength + cardio feed)
 
 ## Sessions
