@@ -53,6 +53,10 @@ cd infra
 docker compose up -d
 ```
 
+## Web deploy cache behavior
+- Frontend service worker cache name is build-versioned (`/sw.js?v=<build-version>`), so normal rebuild/redeploy should rotate cache automatically.
+- If a client still shows stale UI after deploy, do a hard refresh and, if needed, unregister the service worker once in browser DevTools.
+
 ## Scheduled backups + retention
 Install daily cron backup for current user:
 ```bash

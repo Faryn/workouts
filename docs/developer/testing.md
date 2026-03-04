@@ -18,6 +18,8 @@ This project follows TDD-oriented practice for implemented functionality:
 - Session set logging stores actuals without overwriting planned values
 - Session finish marks linked scheduled workout completed
 - Trainer can access assigned athlete schedule
+- Admin user management endpoints (list/create/patch/reset-password) + non-admin forbidden checks
+- Template lifecycle writes audit events (create/patch/delete)
 - Trainer is forbidden from unassigned athlete schedule access (structured error shape)
 - Cardio create/list flow
 - Stats weights-over-time endpoint over completed session logs
@@ -25,7 +27,7 @@ This project follows TDD-oriented practice for implemented functionality:
 ## Test levels
 - **Unit tests:** pure business rules (to expand as services are added)
 - **Integration tests:** API + DB interaction (current focus)
-- **E2E/interface tests:** Playwright UI tests for key frontend flows
+- **E2E/interface tests:** Playwright UI tests for key frontend flows, including admin users UI and role-guard behavior
 
 ## Run tests
 From `apps/api`:

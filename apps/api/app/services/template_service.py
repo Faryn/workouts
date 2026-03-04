@@ -1,7 +1,10 @@
+import json
+
 from sqlalchemy.orm import Session
 
 from app.core.permissions import ensure_self_or_assigned
 from app.models.assignment import TrainerAssignment
+from app.models.audit import AuditEvent
 from app.models.exercise import Exercise
 from app.models.template import WorkoutTemplate
 from app.models.user import User
@@ -28,6 +31,24 @@ def _can_manage_template(db: Session, user: User, template: WorkoutTemplate) -> 
     if user.role == 'trainer':
         return _is_assigned_trainer_for_athlete(db, user.id, template.owner_id)
     return False
+
+
+def _record_template_audit(
+    db: Session,
+    actor: User,
+    action: str,
+    template: WorkoutTemplate,
+    metadata: dict | None = None,
+) -> None:
+    evt = AuditEvent(
+        actor_id=actor.id,
+        actor_role=actor.role,
+        action=action,
+        entity_type='workout_template',
+        entity_id=template.id,
+        metadata_json=json.dumps(metadata or {}),
+    )
+    db.add(evt)
 
 
 def _serialize_template(db: Session, t: WorkoutTemplate, user: User) -> dict:
@@ -117,6 +138,7 @@ def create_template(
     if exercises:
         template_repo.replace_exercises(db, t.id, exercises)
 
+    _record_template_audit(db, user, 'template.create', t, {'exercise_count': len(exercises)})
     db.commit()
     db.refresh(t)
     return _serialize_template(db, t, user)
@@ -142,6 +164,17 @@ def patch_template(
         _validate_exercises_payload(db, user, exercises, template_owner_id=t.owner_id)
         template_repo.replace_exercises(db, t.id, exercises)
 
+    _record_template_audit(
+        db,
+        user,
+        'template.patch',
+        t,
+        {
+            'updated_name': name is not None,
+            'updated_notes': notes is not None,
+            'updated_exercises': exercises is not None,
+        },
+    )
     db.commit()
     db.refresh(t)
     return _serialize_template(db, t, user)
@@ -151,5 +184,6 @@ def delete_template(db: Session, user: User, template_id: str) -> bool:
     t = template_repo.get(db, template_id)
     if not t or not _can_manage_template(db, user, t):
         return False
+    _record_template_audit(db, user, 'template.delete', t, None)
     template_repo.delete(db, t)
     return True

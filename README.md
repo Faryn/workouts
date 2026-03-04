@@ -5,8 +5,9 @@ Strength-focused workout app (athlete + trainer), API-first.
 ## Current status
 Implemented slices include:
 - Auth (login + me) with optional athlete-scoped trainer/admin API tokens
+- Admin user management (list/create/update users + password reset)
 - Exercise CRUD with visibility/ownership filtering
-- Template CRUD with ordered template exercises
+- Template CRUD with ordered template exercises, role-aware `can_manage`, and `exercise_name` fallback
 - Scheduling (create/move/copy/skip/delete + recurring patterns)
 - Calendar feed (strength + cardio merged) and compact weekly calendar UI
 - Session flow (start, log sets, autosave, finish, history, latest in-progress)

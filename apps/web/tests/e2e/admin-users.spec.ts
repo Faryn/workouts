@@ -20,15 +20,28 @@ test('admin can open Users view and create user in GUI', async ({ page }) => {
 
   await page.route('**://api.test/v1/admin/users/**', async (route) => {
     const method = route.request().method()
+    const url = new URL(route.request().url())
     if (method === 'GET' || method === 'OPTIONS') {
       await fulfillJson(route, users)
       return
     }
-    if (method === 'POST') {
+    if (method === 'POST' && url.pathname.endsWith('/users/')) {
       const payload = JSON.parse(route.request().postData() || '{}')
       const created = { id: `u-${users.length + 1}`, email: payload.email, role: payload.role, active: payload.active ?? true }
       users = [...users, created]
       await fulfillJson(route, created)
+      return
+    }
+    if (method === 'PATCH') {
+      const id = url.pathname.split('/').pop()!
+      const payload = JSON.parse(route.request().postData() || '{}')
+      users = users.map((u) => (u.id === id ? { ...u, ...payload } : u))
+      const updated = users.find((u) => u.id === id)
+      await fulfillJson(route, updated)
+      return
+    }
+    if (method === 'POST' && url.pathname.endsWith('/password')) {
+      await fulfillJson(route, { ok: true })
       return
     }
     await fulfillJson(route, { ok: true })
@@ -47,4 +60,13 @@ test('admin can open Users view and create user in GUI', async ({ page }) => {
   await page.getByRole('button', { name: 'Create user' }).click()
 
   await expect(page.getByText('coach@example.com · trainer · active')).toBeVisible()
+
+  await page.getByLabel('Role for coach@example.com').selectOption('athlete')
+  await expect(page.getByText('coach@example.com · athlete · active')).toBeVisible()
+
+  const row = page.locator('li', { hasText: 'coach@example.com' })
+  await row.getByRole('button', { name: 'Reset Password' }).click()
+  await page.getByPlaceholder('New password (min 8 chars)').fill('updated1234')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('heading', { name: 'Reset password' })).toHaveCount(0)
 })

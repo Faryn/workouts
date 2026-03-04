@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
+import { RequireRole } from './components/RoleRoute'
 import { api, type AthleteLite, type Me } from './lib/api'
 import { DashboardPage } from './pages/DashboardPage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
@@ -13,9 +14,11 @@ import './styles.css'
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // no-op for local/dev failures
-    })
+    navigator.serviceWorker.register(`/sw.js?v=${__APP_VERSION__}`)
+      .then((reg) => reg.update())
+      .catch(() => {
+        // no-op for local/dev failures
+      })
   })
 }
 
@@ -64,20 +67,35 @@ function App() {
           />
           <Route
             path="/templates"
-            element={me.role === 'admin'
-              ? <Navigate to="/admin/users" replace />
-              : <TemplatesPage token={token} me={me} athleteId={selectedAthleteId} />}
+            element={
+              <RequireRole role={me.role} allow={['athlete', 'trainer']} fallbackTo="/admin/users">
+                <TemplatesPage token={token} me={me} athleteId={selectedAthleteId} />
+              </RequireRole>
+            }
           />
           <Route
             path="/schedule"
-            element={me.role === 'admin'
-              ? <Navigate to="/admin/users" replace />
-              : <SchedulePage token={token} athleteId={selectedAthleteId} />}
+            element={
+              <RequireRole role={me.role} allow={['athlete', 'trainer']} fallbackTo="/admin/users">
+                <SchedulePage token={token} athleteId={selectedAthleteId} />
+              </RequireRole>
+            }
           />
-          <Route path="/admin/users" element={<AdminUsersPage token={token} me={me} />} />
+          <Route
+            path="/admin/users"
+            element={
+              <RequireRole role={me.role} allow={['admin']}>
+                <AdminUsersPage token={token} me={me} />
+              </RequireRole>
+            }
+          />
           <Route
             path="/sessions"
-            element={me.role === 'athlete' ? <SessionsPage token={token} athleteId={selectedAthleteId} /> : <Navigate to="/" replace />}
+            element={
+              <RequireRole role={me.role} allow={['athlete']} fallbackTo={me.role === 'admin' ? '/admin/users' : '/'}>
+                <SessionsPage token={token} athleteId={selectedAthleteId} />
+              </RequireRole>
+            }
           />
           <Route path="*" element={<Navigate to={me.role === 'admin' ? '/admin/users' : '/'} replace />} />
         </Routes>

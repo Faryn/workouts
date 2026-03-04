@@ -8,6 +8,8 @@ export function AdminUsersPage({ token, me }: { token: string; me: { role: strin
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'athlete' | 'trainer' | 'admin'>('athlete')
   const [password, setPassword] = useState('')
+  const [resetForUserId, setResetForUserId] = useState<string | null>(null)
+  const [newPassword, setNewPassword] = useState('')
 
   if (me.role !== 'admin') {
     return <div className="card"><p>Admin access required.</p></div>
@@ -80,9 +82,8 @@ export function AdminUsersPage({ token, me }: { token: string; me: { role: strin
                     void api.patchUser(token, u.id, { active: !u.active }).then(load).catch((e: unknown) => setErr(errorMessage(e)))
                   }}>{u.active ? 'Deactivate' : 'Activate'}</button>
                   <button onClick={() => {
-                    const next = prompt('New password (min 8 chars):')
-                    if (!next || next.length < 8) return
-                    void api.resetUserPassword(token, u.id, next).catch((e: unknown) => setErr(errorMessage(e)))
+                    setResetForUserId(u.id)
+                    setNewPassword('')
                   }}>Reset Password</button>
                 </div>
               </div>
@@ -91,6 +92,32 @@ export function AdminUsersPage({ token, me }: { token: string; me: { role: strin
         </ul>
         {err && <p style={{ color: '#fca5a5' }}>{err}</p>}
       </div>
+
+      {resetForUserId && (
+        <div className="card">
+          <h3>Reset password</h3>
+          <div className="row">
+            <input
+              placeholder="New password (min 8 chars)"
+              type="password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+            />
+            <button onClick={() => { setResetForUserId(null); setNewPassword('') }}>Cancel</button>
+            <button
+              disabled={newPassword.length < 8}
+              onClick={() => {
+                void api.resetUserPassword(token, resetForUserId, newPassword)
+                  .then(() => {
+                    setResetForUserId(null)
+                    setNewPassword('')
+                  })
+                  .catch((e: unknown) => setErr(errorMessage(e)))
+              }}
+            >Save</button>
+          </div>
+        </div>
+      )}
     </>
   )
 }

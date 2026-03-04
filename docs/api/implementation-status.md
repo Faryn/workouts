@@ -5,17 +5,25 @@
 - `POST /v1/auth/login` (supports optional athlete-scoped tokens for trainer/admin via `athlete_ids`)
 - `GET /v1/auth/me`
 - `GET /v1/auth/assigned-athletes` (trainer/admin athlete context helper)
+
+## Admin User Management
+- `GET /v1/admin/users/` (admin-only)
+- `POST /v1/admin/users/` (admin-only)
+- `PATCH /v1/admin/users/{user_id}` (admin-only)
+- `POST /v1/admin/users/{user_id}/password` (admin-only)
 - `GET /v1/exercises/` (auth required, basic visibility filtering)
 - `POST /v1/exercises/` (role/ownership-aware create)
 - `PATCH /v1/exercises/{exercise_id}`
 - `DELETE /v1/exercises/{exercise_id}`
 
 ## Templates
-- `GET /v1/templates/`
+- `GET /v1/templates/` (supports optional `athlete_id` context for trainer/admin)
 - `POST /v1/templates/`
 - `PATCH /v1/templates/{template_id}`
 - `DELETE /v1/templates/{template_id}`
 - Supports ordered template exercises with planned sets/reps/weight/rest/notes.
+- Template payload includes `exercise_name` fallback and `can_manage` flag for role-aware UI actions.
+- Template create/patch/delete writes `AuditEvent` entries.
 
 ## Scheduling + Calendar
 - `GET /v1/scheduled-workouts/?athlete_id=...`

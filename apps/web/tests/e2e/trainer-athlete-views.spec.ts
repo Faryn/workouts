@@ -62,6 +62,8 @@ test('trainer: no Gym nav, /sessions redirects, mixed-owner templates show names
 
   await page.getByRole('link', { name: 'Plans' }).click()
   await expect(page.getByText('Athlete Plan')).toBeVisible()
+  const athletePlanRow = page.locator('li', { hasText: 'Athlete Plan' })
+  await expect(athletePlanRow.getByRole('button', { name: 'Edit' })).toBeVisible()
   await page.getByText('Show exercises').click()
   await expect(page.getByText('Trainer Custom Bench')).toBeVisible()
 })
