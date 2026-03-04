@@ -33,6 +33,7 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
   const [notice, setNotice] = useState<string | null>(null)
   const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>({})
   const [activeSetKey, setActiveSetKey] = useState<string | null>(null)
+  const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'ok' | 'error'>('idle')
 
   const rest = useRestTimer(DEFAULT_REST_SECONDS)
 
@@ -117,9 +118,15 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
     if (!session || session.status !== 'in_progress') return
 
     const id = window.setInterval(() => {
-      void api.autosaveSession(token, session.id).catch(() => {
-        // silent background autosave; interactive actions still surface errors
-      })
+      setAutosaveState('saving')
+      void api.autosaveSession(token, session.id)
+        .then((saved) => {
+          setAutosaveState('ok')
+          setSession(prev => (prev ? { ...prev, last_saved_at: saved.last_saved_at ?? prev.last_saved_at, notes: saved.notes ?? prev.notes } : prev))
+        })
+        .catch(() => {
+          setAutosaveState('error')
+        })
     }, 15000)
 
     return () => window.clearInterval(id)
@@ -211,28 +218,36 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
       />
 
       {session && (
-        <InProgressSession
-          session={session}
-          exerciseNameById={exerciseNameById}
-          setDrafts={setDrafts}
-          activeSetKey={activeSetKey}
-          onChangeDraft={(k, draft) => setSetDrafts(prev => ({ ...prev, [k]: draft }))}
-          onDone={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'done', true, true)}
-          onSkip={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'skipped', false, true)}
-          onSelectSet={setActiveSetKey}
-          onFinish={() => void finish()}
-          restTimer={
-            <RestTimer
-              restSeconds={rest.restSeconds}
-              restRemaining={rest.restRemaining}
-              restRunning={rest.restRunning}
-              onSetSeconds={rest.applyDefault}
-              onStart={rest.start}
-              onRestart={rest.restart}
-              onPause={rest.pause}
-            />
-          }
-        />
+        <>
+          <div className="card">
+            <p className="small" style={{ margin: 0 }}>
+              Autosave: {autosaveState === 'saving' ? 'saving…' : autosaveState === 'ok' ? 'ok' : autosaveState === 'error' ? 'retrying' : 'idle'}
+              {session.last_saved_at ? ` · last saved ${new Date(session.last_saved_at).toLocaleTimeString()}` : ''}
+            </p>
+          </div>
+          <InProgressSession
+            session={session}
+            exerciseNameById={exerciseNameById}
+            setDrafts={setDrafts}
+            activeSetKey={activeSetKey}
+            onChangeDraft={(k, draft) => setSetDrafts(prev => ({ ...prev, [k]: draft }))}
+            onDone={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'done', true, true)}
+            onSkip={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'skipped', false, true)}
+            onSelectSet={setActiveSetKey}
+            onFinish={() => void finish()}
+            restTimer={
+              <RestTimer
+                restSeconds={rest.restSeconds}
+                restRemaining={rest.restRemaining}
+                restRunning={rest.restRunning}
+                onSetSeconds={rest.applyDefault}
+                onStart={rest.start}
+                onRestart={rest.restart}
+                onPause={rest.pause}
+              />
+            }
+          />
+        </>
       )}
 
       <div className="card">

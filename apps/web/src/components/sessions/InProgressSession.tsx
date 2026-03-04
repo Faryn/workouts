@@ -42,6 +42,19 @@ export function InProgressSession(props: {
   onFinish: () => void
   restTimer: ReactNode
 }) {
+  const active = (() => {
+    if (!props.activeSetKey) return null
+    for (const ex of props.session.logged_exercises ?? []) {
+      for (const st of ex.sets ?? []) {
+        const k = setKey(ex.id, st.set_number)
+        if (k === props.activeSetKey) {
+          return { loggedExerciseId: ex.id, setNumber: st.set_number, exerciseName: props.exerciseNameById[ex.exercise_id] ?? ex.exercise_id }
+        }
+      }
+    }
+    return null
+  })()
+
   return (
     <div className="card">
       <h3>In Progress Session</h3>
@@ -104,6 +117,14 @@ export function InProgressSession(props: {
       ))}
 
       {props.restTimer}
+
+      {active && (
+        <div className="sticky-set-actions row" style={{ alignItems: 'center' }}>
+          <strong>{active.exerciseName} · Set {active.setNumber}</strong>
+          <button style={{ padding: '14px 18px' }} onClick={() => props.onDone(active.loggedExerciseId, active.setNumber)}>Done</button>
+          <button style={{ padding: '14px 18px' }} onClick={() => props.onSkip(active.loggedExerciseId, active.setNumber)}>Skip</button>
+        </div>
+      )}
 
       <div className="row">
         <button onClick={props.onFinish}>Finish session</button>

@@ -39,3 +39,20 @@ ul { margin: 0; padding-left: 18px; }
   color: #93c5fd;
   font-weight: 600;
 }
+
+.sticky-set-actions {
+  position: sticky;
+  bottom: 8px;
+  z-index: 20;
+  padding: 10px;
+  border: 1px solid #374151;
+  border-radius: 10px;
+  background: #0b1220;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 700px) {
+  .container { padding: 12px; }
+  input, button, select { font-size: 16px; }
+  .card { padding: 12px; }
+}

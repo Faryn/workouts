@@ -42,6 +42,66 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify({ id: 'athlete-1', email: 'athlete@example.com', role: 'athlete' }),
     })
   })
+
+  await page.route('**://api.test/v1/auth/assigned-athletes', async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({
+        status: 204,
+        headers: {
+          'access-control-allow-origin': '*',
+          'access-control-allow-methods': 'GET,OPTIONS',
+          'access-control-allow-headers': '*',
+        },
+      })
+      return
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify([{ id: 'athlete-1', email: 'athlete@example.com' }]),
+    })
+  })
+
+  await page.route('**://api.test/v1/scheduled-workouts/calendar**', async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({
+        status: 204,
+        headers: {
+          'access-control-allow-origin': '*',
+          'access-control-allow-methods': 'GET,OPTIONS',
+          'access-control-allow-headers': '*',
+        },
+      })
+      return
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify([]),
+    })
+  })
+
+  await page.route('**://api.test/v1/exercises/**', async (route) => {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({
+        status: 204,
+        headers: {
+          'access-control-allow-origin': '*',
+          'access-control-allow-methods': 'GET,OPTIONS',
+          'access-control-allow-headers': '*',
+        },
+      })
+      return
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify([{ id: 'ex-1', name: 'Bench Press', type: 'strength', owner_scope: 'global' }]),
+    })
+  })
 })
 
 test('login renders dashboard', async ({ page }) => {
@@ -52,7 +112,7 @@ test('login renders dashboard', async ({ page }) => {
 })
 
 test('template create and delete flow in UI', async ({ page }) => {
-  let templates = [{ id: 't1', name: 'Upper A', notes: 'push' }]
+  let templates = [{ id: 't1', name: 'Upper A', notes: 'push', owner_id: 'athlete-1', exercises: [] as any[] }]
 
   await page.route('**://api.test/v1/templates**', async (route) => {
     const method = route.request().method()
@@ -81,7 +141,7 @@ test('template create and delete flow in UI', async ({ page }) => {
 
     if (method === 'POST') {
       const payload = JSON.parse(route.request().postData() || '{}')
-      const created = { id: `t${templates.length + 1}`, name: payload.name, notes: payload.notes || null }
+      const created = { id: `t${templates.length + 1}`, name: payload.name, notes: payload.notes || null, owner_id: 'athlete-1', exercises: [] }
       templates = [...templates, created]
       await route.fulfill({
         status: 200,

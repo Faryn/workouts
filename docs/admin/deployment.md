@@ -52,3 +52,15 @@ After successful restore:
 cd infra
 docker compose up -d
 ```
+
+## Scheduled backups + retention
+Install daily cron backup for current user:
+```bash
+cd infra/backup
+./install-cron.sh
+```
+
+Optional schedule/retention overrides:
+```bash
+BACKUP_HOUR=2 BACKUP_MINUTE=30 RETENTION_DAYS=21 BACKUP_ROOT=/srv/workout-backups ./install-cron.sh
+```
