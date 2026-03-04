@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { api, type AthleteLite, type Me } from './lib/api'
 import { DashboardPage } from './pages/DashboardPage'
+import { AdminUsersPage } from './pages/AdminUsersPage'
 import { LoginPage } from './pages/LoginPage'
 import { SchedulePage } from './pages/SchedulePage'
 import { SessionsPage } from './pages/SessionsPage'
@@ -55,14 +56,30 @@ function App() {
         }}
       >
         <Routes>
-          <Route path="/" element={<DashboardPage me={me} token={token} athleteId={selectedAthleteId} />} />
-          <Route path="/templates" element={<TemplatesPage token={token} me={me} athleteId={selectedAthleteId} />} />
-          <Route path="/schedule" element={<SchedulePage token={token} athleteId={selectedAthleteId} />} />
+          <Route
+            path="/"
+            element={me.role === 'admin'
+              ? <Navigate to="/admin/users" replace />
+              : <DashboardPage me={me} token={token} athleteId={selectedAthleteId} />}
+          />
+          <Route
+            path="/templates"
+            element={me.role === 'admin'
+              ? <Navigate to="/admin/users" replace />
+              : <TemplatesPage token={token} me={me} athleteId={selectedAthleteId} />}
+          />
+          <Route
+            path="/schedule"
+            element={me.role === 'admin'
+              ? <Navigate to="/admin/users" replace />
+              : <SchedulePage token={token} athleteId={selectedAthleteId} />}
+          />
+          <Route path="/admin/users" element={<AdminUsersPage token={token} me={me} />} />
           <Route
             path="/sessions"
             element={me.role === 'athlete' ? <SessionsPage token={token} athleteId={selectedAthleteId} /> : <Navigate to="/" replace />}
           />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to={me.role === 'admin' ? '/admin/users' : '/'} replace />} />
         </Routes>
       </Layout>
     </BrowserRouter>

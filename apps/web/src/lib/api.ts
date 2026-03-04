@@ -1,3 +1,4 @@
+import { adminApi } from './api/admin'
 import { authApi } from './api/auth'
 import { exportsApi } from './api/exports'
 import { scheduleApi } from './api/schedule'
@@ -8,6 +9,7 @@ export * from './api/types'
 
 export const api = {
   ...authApi,
+  ...adminApi,
   ...templatesApi,
   ...scheduleApi,
   ...sessionsApi,

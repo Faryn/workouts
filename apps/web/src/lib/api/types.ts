@@ -3,6 +3,13 @@ export type LoginResponse = { access_token: string; token_type: string }
 export type Me = { id: string; email: string; role: string }
 export type AthleteLite = { id: string; email: string }
 
+export type AdminUser = {
+  id: string
+  email: string
+  role: 'athlete' | 'trainer' | 'admin'
+  active: boolean
+}
+
 export type TemplateExercise = {
   id: string
   exercise_id: string

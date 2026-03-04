@@ -3,6 +3,7 @@ from typing import cast
 from fastapi import FastAPI
 
 from app.api.v1 import (
+    admin_users,
     auth,
     cardio_sessions,
     exercises,
@@ -20,6 +21,7 @@ app.add_exception_handler(AppError, cast(object, app_error_handler))
 
 app.include_router(health.router, prefix="/v1", tags=["health"])
 app.include_router(auth.router, prefix="/v1/auth", tags=["auth"])
+app.include_router(admin_users.router, prefix="/v1/admin/users", tags=["admin-users"])
 app.include_router(exercises.router, prefix="/v1/exercises", tags=["exercises"])
 app.include_router(templates.router, prefix="/v1/templates", tags=["templates"])
 app.include_router(scheduled_workouts.router, prefix="/v1/scheduled-workouts", tags=["scheduled-workouts"])

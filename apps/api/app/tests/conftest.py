@@ -73,6 +73,20 @@ def seeded_trainer_and_assignment(db_session, seeded_user):
 
 
 @pytest.fixture()
+def seeded_admin(db_session):
+    admin = User(
+        email="admin@example.com",
+        password_hash=hash_password("secret123"),
+        role="admin",
+        active=True,
+    )
+    db_session.add(admin)
+    db_session.commit()
+    db_session.refresh(admin)
+    return admin
+
+
+@pytest.fixture()
 def seeded_exercises(db_session, seeded_user):
     rows = [
         Exercise(name="Bench Press", type="strength", owner_scope="global"),
