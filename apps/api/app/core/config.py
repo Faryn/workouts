@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     api_token_secret: str = "change-me"
     trusted_proxy: str = "127.0.0.1"
     export_path: str = "./data/exports"
+    seed_default_trainer_and_athlete: bool = True
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

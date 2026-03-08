@@ -48,7 +48,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
 @router.get('/me')
 def me(current_user: User = Depends(get_current_user)):
-    return {'id': current_user.id, 'email': current_user.email, 'role': current_user.role}
+    return {'id': current_user.id, 'email': current_user.email, 'name': current_user.name, 'role': current_user.role}
 
 
 @router.get('/assigned-athletes')
@@ -64,10 +64,10 @@ def assigned_athletes(
             .order_by(User.email.asc())
             .all()
         )
-        return [{'id': u.id, 'email': u.email} for u in rows]
+        return [{'id': u.id, 'email': u.email, 'name': u.name} for u in rows]
 
     if current_user.role == 'admin':
         rows = db.query(User).filter(User.role == 'athlete').order_by(User.email.asc()).all()
-        return [{'id': u.id, 'email': u.email} for u in rows]
+        return [{'id': u.id, 'email': u.email, 'name': u.name} for u in rows]
 
-    return [{'id': current_user.id, 'email': current_user.email}]
+    return [{'id': current_user.id, 'email': current_user.email, 'name': current_user.name}]

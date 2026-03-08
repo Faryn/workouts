@@ -34,7 +34,7 @@ function App() {
       setMe(user)
       const athletes = await api.assignedAthletes(token)
       setAthleteOptions(athletes)
-      const defaultAthlete = user.role === 'athlete' ? user.id : (athletes[0]?.id ?? user.id)
+      const defaultAthlete = user.role === 'athlete' ? user.id : (athletes[0]?.id ?? null)
       setSelectedAthleteId(defaultAthlete)
     }).catch(() => {
       setToken(null)
@@ -43,7 +43,34 @@ function App() {
   }, [token])
 
   if (!token) return <LoginPage onToken={setToken} />
-  if (!me || !selectedAthleteId) return <div className="container"><div className="card">Loading profile...</div></div>
+  if (!me) return <div className="container"><div className="card">Loading profile...</div></div>
+
+  const needsAthleteContext = me.role !== 'admin'
+  const hasAthleteContext = !needsAthleteContext || selectedAthleteId !== null
+
+  if (!hasAthleteContext) {
+    return (
+      <BrowserRouter>
+        <Layout
+          me={me}
+          athleteOptions={athleteOptions}
+          selectedAthleteId={selectedAthleteId}
+          onSelectAthlete={setSelectedAthleteId}
+          onLogout={() => {
+            setToken(null)
+            localStorage.removeItem('token')
+          }}
+        >
+          <div className="card">
+            <h3>No athlete selected</h3>
+            <p className="small">This account does not currently have an athlete context. Assign an athlete to this trainer account or log in as an athlete.</p>
+          </div>
+        </Layout>
+      </BrowserRouter>
+    )
+  }
+
+  const athleteId = selectedAthleteId as string
 
   return (
     <BrowserRouter>
@@ -62,13 +89,13 @@ function App() {
             path="/"
             element={me.role === 'admin'
               ? <Navigate to="/admin/users" replace />
-              : <DashboardPage me={me} token={token} athleteId={selectedAthleteId} />}
+              : <DashboardPage me={me} token={token} athleteId={athleteId} />}
           />
           <Route
             path="/templates"
             element={
               <RequireRole role={me.role} allow={['athlete', 'trainer']} fallbackTo="/admin/users">
-                <TemplatesPage token={token} me={me} athleteId={selectedAthleteId} />
+                <TemplatesPage token={token} me={me} athleteId={athleteId} />
               </RequireRole>
             }
           />
@@ -76,7 +103,7 @@ function App() {
             path="/sessions"
             element={
               <RequireRole role={me.role} allow={['athlete']} fallbackTo={me.role === 'admin' ? '/admin/users' : '/'}>
-                <SessionsPage token={token} athleteId={selectedAthleteId} />
+                <SessionsPage token={token} athleteId={athleteId} />
               </RequireRole>
             }
           />

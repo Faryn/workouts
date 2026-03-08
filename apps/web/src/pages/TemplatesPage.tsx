@@ -24,7 +24,7 @@ function toEditable(t: Template): EditableTemplate {
   }
 }
 
-export function TemplatesPage({ token, me, athleteId }: { token: string; me: { id: string; role: string }; athleteId: string }) {
+export function TemplatesPage({ token, me, athleteId }: { token: string; me: { id: string; name?: string | null; role: string }; athleteId: string }) {
   const [items, setItems] = useState<Template[]>([])
   const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([])
   const exerciseNameById = exerciseOptions.reduce<Record<string, string>>((acc, e) => {
@@ -95,7 +95,7 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
       <section className="hero-panel compact">
         <div>
           <div className="hero-kicker">Programs</div>
-          <h1 className="hero-title">Build repeatable training blocks.</h1>
+          <h1 className="hero-title">{me.role === 'athlete' && me.name ? `Build ${me.name}'s training blocks.` : 'Build repeatable training blocks.'}</h1>
           <p className="hero-text">Create reusable workout structures, tune rest and exercise order, then schedule them from the dashboard.</p>
         </div>
       </section>

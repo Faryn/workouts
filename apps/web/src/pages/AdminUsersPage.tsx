@@ -6,6 +6,7 @@ export function AdminUsersPage({ token, me }: { token: string; me: { role: strin
   const [users, setUsers] = useState<AdminUser[]>([])
   const [err, setErr] = useState<string | null>(null)
   const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
   const [role, setRole] = useState<'athlete' | 'trainer' | 'admin'>('athlete')
   const [password, setPassword] = useState('')
   const [resetForUserId, setResetForUserId] = useState<string | null>(null)
@@ -32,8 +33,9 @@ export function AdminUsersPage({ token, me }: { token: string; me: { role: strin
   async function createUser() {
     if (!email || !password) return
     try {
-      await api.createUser(token, { email, role, password, active: true })
+      await api.createUser(token, { email, name: name.trim() || undefined, role, password, active: true })
       setEmail('')
+      setName('')
       setPassword('')
       setRole('athlete')
       await load()
@@ -47,6 +49,7 @@ export function AdminUsersPage({ token, me }: { token: string; me: { role: strin
       <div className="card">
         <h2>Admin · Users</h2>
         <div className="row">
+          <input placeholder="First name" value={name} onChange={e => setName(e.target.value)} />
           <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
           <select value={role} onChange={e => setRole(e.target.value as 'athlete' | 'trainer' | 'admin')}>
             <option value="athlete">athlete</option>
@@ -64,10 +67,16 @@ export function AdminUsersPage({ token, me }: { token: string; me: { role: strin
           {users.map(u => (
             <li key={u.id} style={{ marginBottom: 8 }}>
               <div className="row" style={{ justifyContent: 'space-between' }}>
-                <span>{u.email} · {u.role} · {u.active ? 'active' : 'inactive'}</span>
+                <span>{u.name || u.email} · {u.role} · {u.active ? 'active' : 'inactive'}</span>
                 <div className="row">
+                  <button onClick={() => {
+                    const current = u.name ?? ''
+                    const next = window.prompt(`First name for ${u.email}`, current)
+                    if (next === null) return
+                    void api.patchUser(token, u.id, { name: next }).then(load).catch((e: unknown) => setErr(errorMessage(e)))
+                  }}>Edit Name</button>
                   <select
-                    aria-label={`Role for ${u.email}`}
+                    aria-label={`Role for ${u.name || u.email}`}
                     value={u.role}
                     onChange={(e) => {
                       const next = e.target.value as 'athlete' | 'trainer' | 'admin'

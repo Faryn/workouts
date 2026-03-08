@@ -26,6 +26,7 @@ def create_user(
     return admin_user_service.create_user(
         db,
         email=payload.email,
+        name=payload.name,
         role=payload.role,
         password=payload.password,
         active=payload.active,
@@ -44,6 +45,7 @@ def patch_user(
         db,
         user_id=user_id,
         email=payload.email,
+        name=payload.name,
         role=payload.role,
         active=payload.active,
     )

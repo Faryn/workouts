@@ -14,6 +14,7 @@ def serialize_user(u: User) -> dict:
     return {
         'id': u.id,
         'email': u.email,
+        'name': u.name,
         'role': u.role,
         'active': u.active,
     }
@@ -24,13 +25,14 @@ def list_users(db: Session) -> list[dict]:
     return [serialize_user(u) for u in rows]
 
 
-def create_user(db: Session, email: str, role: str, password: str, active: bool) -> dict:
+def create_user(db: Session, email: str, name: str | None, role: str, password: str, active: bool) -> dict:
     existing = db.query(User).filter(User.email == email).first()
     if existing:
         raise AppError(code='email_exists', message='Email already exists', status_code=409)
 
     row = User(
         email=email,
+        name=name.strip() if name else None,
         role=role,
         password_hash=hash_password(password),
         active=active,
@@ -45,6 +47,7 @@ def patch_user(
     db: Session,
     user_id: str,
     email: str | None,
+    name: str | None,
     role: str | None,
     active: bool | None,
 ) -> dict:
@@ -58,6 +61,8 @@ def patch_user(
             raise AppError(code='email_exists', message='Email already exists', status_code=409)
         row.email = email
 
+    if name is not None:
+        row.name = name.strip() or None
     if role is not None:
         row.role = role
     if active is not None:

@@ -29,7 +29,7 @@ function relativeDateLabel(dateStr: string) {
   return target.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-export function DashboardPage({ me, token, athleteId }: { me: { id: string; email: string; role: string }; token: string; athleteId: string }) {
+export function DashboardPage({ me, token, athleteId }: { me: { id: string; email: string; name?: string | null; role: string }; token: string; athleteId: string }) {
   const [err, setErr] = useState<string | null>(null)
   const [calendarItems, setCalendarItems] = useState<CalendarItem[]>([])
   const [inProgress, setInProgress] = useState<SessionDetail | null>(null)
@@ -139,7 +139,7 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
       <section className="hero-panel">
         <div>
           <div className="hero-kicker">Dashboard</div>
-          <h1 className="hero-title">Keep training on track.</h1>
+          <h1 className="hero-title">{me.role === 'athlete' && me.name ? `${me.name}, keep training on track.` : 'Keep training on track.'}</h1>
           <p className="hero-text">See what is scheduled, jump into training, and manage your upcoming weeks from one place.</p>
         </div>
         <div className="hero-actions">

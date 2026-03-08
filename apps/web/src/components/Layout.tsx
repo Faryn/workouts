@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 
-type AthleteLite = { id: string; email: string }
+type AthleteLite = { id: string; email: string; name?: string | null }
 
 export function Layout({
   children,
@@ -12,9 +12,9 @@ export function Layout({
 }: {
   children: React.ReactNode
   onLogout: () => void
-  me: { id: string; email: string; role: string }
+  me: { id: string; email: string; name?: string | null; role: string }
   athleteOptions: AthleteLite[]
-  selectedAthleteId: string
+  selectedAthleteId: string | null
   onSelectAthlete: (id: string) => void
 }) {
   const selectedAthlete = athleteOptions.find(a => a.id === selectedAthleteId)
@@ -45,9 +45,9 @@ export function Layout({
           {me.role === 'trainer' && athleteOptions.length > 0 && (
             <label className="stack">
               <span className="small">Athlete</span>
-              <select aria-label="Selected athlete" value={selectedAthleteId} onChange={e => onSelectAthlete(e.target.value)}>
+              <select aria-label="Selected athlete" value={selectedAthleteId ?? ''} onChange={e => onSelectAthlete(e.target.value)}>
                 {athleteOptions.map(a => (
-                  <option key={a.id} value={a.id}>{a.email}</option>
+                  <option key={a.id} value={a.id}>{a.name || a.email}</option>
                 ))}
               </select>
             </label>
@@ -60,7 +60,7 @@ export function Layout({
         {me.role === 'trainer' && selectedAthlete && (
           <div className="context-banner" role="status" aria-live="polite">
             <div className="small">Trainer context</div>
-            <strong>Viewing {selectedAthlete.email}</strong>
+            <strong>Viewing {selectedAthlete.name || selectedAthlete.email}</strong>
           </div>
         )}
         {children}
