@@ -27,7 +27,6 @@ function toEditable(t: Template): EditableTemplate {
 export function TemplatesPage({ token, me, athleteId }: { token: string; me: { id: string; role: string }; athleteId: string }) {
   const [items, setItems] = useState<Template[]>([])
   const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([])
-
   const exerciseNameById = exerciseOptions.reduce<Record<string, string>>((acc, e) => {
     acc[e.id] = e.name
     return acc
@@ -50,9 +49,7 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
     }
   }
 
-  useEffect(() => {
-    void load()
-  }, [athleteId, me.role])
+  useEffect(() => { void load() }, [athleteId, me.role])
 
   async function create() {
     await api.createTemplate(token, { name, notes: notes || undefined, exercises: [] })
@@ -64,23 +61,16 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
   async function duplicateTemplate(id: string) {
     const original = items.find(x => x.id === id)
     if (!original) return
-    const exercises: TemplateExerciseInput[] = original.exercises
-      .slice()
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((e, idx) => ({
-        exercise_id: e.exercise_id,
-        sort_order: idx + 1,
-        planned_sets: e.planned_sets,
-        planned_reps: e.planned_reps,
-        planned_weight: e.planned_weight ?? undefined,
-        rest_seconds: e.rest_seconds ?? undefined,
-        notes: e.notes ?? undefined,
-      }))
-    await api.createTemplate(token, {
-      name: `${original.name} copy`,
-      notes: original.notes ?? undefined,
-      exercises,
-    })
+    const exercises: TemplateExerciseInput[] = original.exercises.slice().sort((a, b) => a.sort_order - b.sort_order).map((e, idx) => ({
+      exercise_id: e.exercise_id,
+      sort_order: idx + 1,
+      planned_sets: e.planned_sets,
+      planned_reps: e.planned_reps,
+      planned_weight: e.planned_weight ?? undefined,
+      rest_seconds: e.rest_seconds ?? undefined,
+      notes: e.notes ?? undefined,
+    }))
+    await api.createTemplate(token, { name: `${original.name} copy`, notes: original.notes ?? undefined, exercises })
     await load()
   }
 
@@ -88,26 +78,9 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
     if (!editing) return
     setSaving(true)
     try {
-      const exercises: TemplateExerciseInput[] = editing.exercises.map((e, idx) => ({
-        exercise_id: e.exercise_id,
-        sort_order: idx + 1,
-        planned_sets: e.planned_sets,
-        planned_reps: e.planned_reps,
-        planned_weight: e.planned_weight,
-        rest_seconds: e.rest_seconds,
-        notes: e.notes,
-      }))
-
-      if (exercises.some(e => !e.exercise_id)) {
-        throw new Error('Please select or create an exercise for each row before saving.')
-      }
-
-      await api.patchTemplate(token, editing.id, {
-        name: editing.name.trim() || 'Untitled Template',
-        notes: editing.notes.trim() || undefined,
-        exercises,
-      })
-
+      const exercises: TemplateExerciseInput[] = editing.exercises.map((e, idx) => ({ exercise_id: e.exercise_id, sort_order: idx + 1, planned_sets: e.planned_sets, planned_reps: e.planned_reps, planned_weight: e.planned_weight, rest_seconds: e.rest_seconds, notes: e.notes }))
+      if (exercises.some(e => !e.exercise_id)) throw new Error('Please select or create an exercise for each row before saving.')
+      await api.patchTemplate(token, editing.id, { name: editing.name.trim() || 'Untitled Program', notes: editing.notes.trim() || undefined, exercises })
       setEditing(null)
       await load()
     } catch (e: unknown) {
@@ -118,15 +91,21 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
   }
 
   return (
-    <>
-      <div className="card">
-        <h2>Templates</h2>
+    <div className="stack">
+      <section className="hero-panel compact">
+        <div>
+          <div className="hero-kicker">Programs</div>
+          <h1 className="hero-title">Build repeatable training blocks.</h1>
+          <p className="hero-text">Create reusable workout structures, tune rest and exercise order, then schedule them from the dashboard.</p>
+        </div>
+      </section>
+
+      <div className="card section-card">
+        <div className="section-head"><div><div className="section-kicker">Create</div><h3>New program</h3></div></div>
         <div className="row">
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Template name" />
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Program name" />
           <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes" />
-          <button onClick={() => void create()} disabled={!name.trim()}>
-            Create
-          </button>
+          <button className="primary" onClick={() => void create()} disabled={!name.trim()}>Create program</button>
         </div>
         {err && <p style={{ color: '#fca5a5' }}>{err}</p>}
       </div>
@@ -134,21 +113,9 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
       <TemplateListCard
         items={items}
         exerciseNameById={exerciseNameById}
-        onEdit={id => {
-          const t = items.find(x => x.id === id)
-          if (t) setEditing(toEditable(t))
-        }}
-        onDuplicate={id => {
-          void (async () => {
-            await duplicateTemplate(id)
-          })()
-        }}
-        onDelete={id => {
-          void (async () => {
-            await api.deleteTemplate(token, id)
-            await load()
-          })()
-        }}
+        onEdit={id => { const t = items.find(x => x.id === id); if (t) setEditing(toEditable(t)) }}
+        onDuplicate={id => { void duplicateTemplate(id) }}
+        onDelete={id => { void (async () => { await api.deleteTemplate(token, id); await load() })() }}
       />
 
       {editing && (
@@ -169,6 +136,6 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
           }}
         />
       )}
-    </>
+    </div>
   )
 }

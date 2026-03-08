@@ -7,7 +7,6 @@ import { api, type AthleteLite, type Me } from './lib/api'
 import { DashboardPage } from './pages/DashboardPage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
 import { LoginPage } from './pages/LoginPage'
-import { SchedulePage } from './pages/SchedulePage'
 import { SessionsPage } from './pages/SessionsPage'
 import { TemplatesPage } from './pages/TemplatesPage'
 import './styles.css'
@@ -74,26 +73,22 @@ function App() {
             }
           />
           <Route
-            path="/schedule"
+            path="/sessions"
             element={
-              <RequireRole role={me.role} allow={['athlete', 'trainer']} fallbackTo="/admin/users">
-                <SchedulePage token={token} athleteId={selectedAthleteId} />
+              <RequireRole role={me.role} allow={['athlete']} fallbackTo={me.role === 'admin' ? '/admin/users' : '/'}>
+                <SessionsPage token={token} athleteId={selectedAthleteId} />
               </RequireRole>
             }
+          />
+          <Route
+            path="/schedule"
+            element={<Navigate to="/" replace />}
           />
           <Route
             path="/admin/users"
             element={
               <RequireRole role={me.role} allow={['admin']}>
                 <AdminUsersPage token={token} me={me} />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/sessions"
-            element={
-              <RequireRole role={me.role} allow={['athlete']} fallbackTo={me.role === 'admin' ? '/admin/users' : '/'}>
-                <SessionsPage token={token} athleteId={selectedAthleteId} />
               </RequireRole>
             }
           />

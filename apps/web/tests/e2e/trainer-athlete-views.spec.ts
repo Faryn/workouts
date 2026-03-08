@@ -58,9 +58,9 @@ test('trainer: no Gym nav, /sessions redirects, mixed-owner templates show names
   await page.goto('/')
   await page.getByRole('button', { name: 'Login' }).click()
 
-  await expect(page.getByRole('link', { name: 'Gym' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Train' })).toHaveCount(0)
 
-  await page.getByRole('link', { name: 'Plans' }).click()
+  await page.getByRole('link', { name: 'Programs' }).click()
   await expect(page.getByText('Athlete Plan')).toBeVisible()
   const athletePlanRow = page.locator('li', { hasText: 'Athlete Plan' })
   await expect(athletePlanRow.getByRole('button', { name: 'Edit' })).toBeVisible()
@@ -100,7 +100,7 @@ test('athlete: trainer-owned template appears with exercise_name fallback', asyn
 
   await page.goto('/')
   await page.getByRole('button', { name: 'Login' }).click()
-  await page.getByRole('link', { name: 'Plans' }).click()
+  await page.getByRole('link', { name: 'Programs' }).click()
 
   await expect(page.getByText('Trainer Program A')).toBeVisible()
   await page.getByText('Show exercises').click()

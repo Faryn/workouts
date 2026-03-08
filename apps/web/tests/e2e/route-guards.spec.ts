@@ -25,8 +25,8 @@ test('admin only sees users surface, not workout nav', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Login' }).click()
   await expect(page.getByRole('link', { name: 'Users' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Week' })).toHaveCount(0)
-  await expect(page.getByRole('link', { name: 'Plans' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Programs' })).toHaveCount(0)
 })
 
 test('trainer opening admin route cannot access users admin surface', async ({ page }) => {

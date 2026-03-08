@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api, type CalendarItem, type SessionDetail } from '../lib/api'
+import { api, type CalendarItem, type SessionDetail, type ScheduledWorkout, type Template } from '../lib/api'
 import { errorMessage } from '../lib/errors'
-
-function iso(d: Date) {
-  return d.toISOString().slice(0, 10)
-}
+import { ScheduleAdvancedPanel } from '../components/schedule/ScheduleAdvancedPanel'
+import { ScheduleDayDetails } from '../components/schedule/ScheduleDayDetails'
+import { ScheduleWeekGrid } from '../components/schedule/ScheduleWeekGrid'
+import { addDays, addMonths, iso, weekStartMonday } from '../lib/date'
 
 function badgeClass(item: CalendarItem) {
   if (item.kind === 'cardio') return 'status-badge status-in_progress'
@@ -19,33 +19,95 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
   const [err, setErr] = useState<string | null>(null)
   const [calendarItems, setCalendarItems] = useState<CalendarItem[]>([])
   const [inProgress, setInProgress] = useState<SessionDetail | null>(null)
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [items, setItems] = useState<ScheduledWorkout[]>([])
+  const [templateId, setTemplateId] = useState('')
+  const [date, setDate] = useState('')
+  const [selectedDate, setSelectedDate] = useState(iso(new Date()))
+  const [patternType, setPatternType] = useState<'interval_days' | 'weekday'>('interval_days')
+  const [patternStart, setPatternStart] = useState('')
+  const [patternEnd, setPatternEnd] = useState('')
+  const [intervalDays, setIntervalDays] = useState(2)
+  const [weekday, setWeekday] = useState('tuesday')
+  const [bulkFrom, setBulkFrom] = useState('')
+  const [bulkTo, setBulkTo] = useState('')
+  const [bulkTemplateId, setBulkTemplateId] = useState('')
+  const [shiftDays, setShiftDays] = useState(7)
+  const [baseMonth, setBaseMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
 
   const range = useMemo(() => {
-    const from = new Date()
-    const to = new Date()
-    to.setDate(to.getDate() + 14)
-    return { from: iso(from), to: iso(to) }
-  }, [])
+    const from = addMonths(baseMonth, -2)
+    const to = addMonths(baseMonth, 4)
+    return { from: iso(from), to: iso(new Date(to.getFullYear(), to.getMonth() + 1, 0)) }
+  }, [baseMonth])
+
+  const templateById = useMemo(() => Object.fromEntries(templates.map(t => [t.id, t])), [templates])
+  const templateNameById = useMemo(() => Object.fromEntries(templates.map(t => [t.id, t.name])), [templates])
+  const exerciseNameById = useMemo(() => {
+    const map: Record<string, string> = {}
+    templates.forEach(t => t.exercises.forEach(ex => {
+      map[ex.exercise_id] = ex.exercise_name ?? map[ex.exercise_id] ?? ex.exercise_id
+    }))
+    return map
+  }, [templates])
+
+  const visibleWeeks = useMemo(() => {
+    const start = weekStartMonday(new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1))
+    return Array.from({ length: 4 }, (_, i) => {
+      const weekStart = new Date(start)
+      weekStart.setDate(start.getDate() + i * 7)
+      return Array.from({ length: 7 }, (_, d) => {
+        const day = new Date(weekStart)
+        day.setDate(weekStart.getDate() + d)
+        return day
+      })
+    })
+  }, [baseMonth])
+
+  async function load() {
+    setErr(null)
+    try {
+      const [calendar, latest, templatesList, scheduled] = await Promise.all([
+        api.listCalendar(token, athleteId, range.from, range.to),
+        me.role === 'athlete' ? api.latestInProgressSession(token, athleteId) : Promise.resolve(null),
+        api.listTemplates(token, athleteId),
+        api.listScheduled(token, athleteId),
+      ])
+      setCalendarItems(calendar)
+      setInProgress(latest)
+      setTemplates(templatesList)
+      setItems(scheduled)
+      if (!templateId && templatesList[0]) setTemplateId(templatesList[0].id)
+    } catch (e: unknown) {
+      setErr(errorMessage(e))
+    }
+  }
 
   useEffect(() => {
-    Promise.all([
-      api.listCalendar(token, athleteId, range.from, range.to),
-      me.role === 'athlete' ? api.latestInProgressSession(token, athleteId) : Promise.resolve(null),
-    ])
-      .then(([items, latest]) => {
-        setCalendarItems(items)
-        setInProgress(latest)
-      })
-      .catch((e: unknown) => setErr(errorMessage(e)))
-  }, [token, athleteId, range.from, range.to, me.role])
+    void load()
+  }, [token, athleteId, me.role, range.from, range.to])
 
   async function run(task: () => Promise<void>) {
     setErr(null)
     try {
       await task()
+      await load()
     } catch (e: unknown) {
       setErr(errorMessage(e))
     }
+  }
+
+  function hasEvents(dateStr: string) {
+    return calendarItems.some(x => x.date === dateStr)
+  }
+
+  function dayStatusClass(dateStr: string) {
+    const day = calendarItems.filter(x => x.date === dateStr)
+    if (day.some(x => x.kind === 'strength' && x.status === 'completed')) return '#34d399'
+    if (day.some(x => x.kind === 'strength' && x.status === 'planned')) return '#60a5fa'
+    if (day.some(x => x.kind === 'strength' && x.status === 'skipped')) return '#f59e0b'
+    if (day.some(x => x.kind === 'cardio')) return '#a78bfa'
+    return '#374151'
   }
 
   const today = iso(new Date())
@@ -53,94 +115,146 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
   const upcomingStrength = calendarItems.filter(i => i.kind === 'strength').slice(0, 5)
   const completedCount = calendarItems.filter(i => i.kind === 'strength' && i.status === 'completed').length
   const plannedCount = calendarItems.filter(i => i.kind === 'strength' && i.status === 'planned').length
+  const selectedStrength = items.filter(i => i.date === selectedDate).sort((a, b) => a.date.localeCompare(b.date))
+  const selectedCardio = calendarItems.filter((i): i is Extract<CalendarItem, { kind: 'cardio' }> => i.kind === 'cardio' && i.date === selectedDate)
 
   return (
     <div className="stack">
-      <div className="card dashboard-hero">
+      <section className="hero-panel">
         <div>
-          <h2>Dashboard</h2>
-          <p><strong>User:</strong> {me.email}</p>
-          <p><strong>Role:</strong> {me.role}</p>
-          <p className="small">Current frontend covers templates, scheduling, sessions, and CSV exports.</p>
+          <div className="hero-kicker">Dashboard</div>
+          <h1 className="hero-title">Keep training on track.</h1>
+          <p className="hero-text">See what is scheduled, jump into training, and manage your upcoming weeks from one place.</p>
         </div>
-        <div className="stack" style={{ minWidth: 280 }}>
+        <div className="hero-actions">
           {me.role === 'athlete' && inProgress && (
-            <div className="notice-banner">
-              <div>
-                <strong>Resume your workout</strong>
-                <div className="small">An in-progress session is ready to continue.</div>
-              </div>
-              <a href="/sessions"><button className="primary">Resume</button></a>
-            </div>
+            <a href="/sessions"><button className="primary">Resume workout</button></a>
           )}
           {me.role === 'athlete' && !inProgress && todaysPlanned && (
-            <a href={`/sessions?scheduled_id=${todaysPlanned.id}`}>
-              <button className="primary" style={{ width: '100%' }}>Start today’s workout</button>
-            </a>
+            <a href={`/sessions?scheduled_id=${todaysPlanned.id}`}><button className="primary">Start workout</button></a>
           )}
+          <button onClick={() => void run(() => api.exportSessionsCsv(token, athleteId))}>Export sessions</button>
         </div>
-      </div>
+      </section>
 
-      <div className="grid-2">
-        <div className="metric-card">
-          <div className="small">Planned in next 14 days</div>
-          <div className="metric-value">{plannedCount}</div>
-        </div>
-        <div className="metric-card">
-          <div className="small">Completed in next 14 days feed</div>
-          <div className="metric-value">{completedCount}</div>
-        </div>
-      </div>
+      <div className="dashboard-grid">
+        <div className="dashboard-main">
+          <div className="grid-2">
+            <div className="metric-card"><div className="small">Planned</div><div className="metric-value">{plannedCount}</div><div className="small">in the visible range</div></div>
+            <div className="metric-card"><div className="small">Completed</div><div className="metric-value">{completedCount}</div><div className="small">in the visible range</div></div>
+          </div>
 
-      <div className="card">
-        <div className="row" style={{ marginBottom: 12 }}>
-          <button onClick={() => void run(() => api.exportSessionsCsv(token, athleteId))}>Export Sessions CSV</button>
-          <button onClick={() => void run(() => api.exportExerciseHistoryCsv(token, athleteId))}>Export Exercise History CSV</button>
-          <button onClick={() => void run(() => api.exportCardioCsv(token, athleteId))}>Export Cardio CSV</button>
-        </div>
-      </div>
-
-      <div className="card">
-        <h3>This week / upcoming</h3>
-        <div className="stack">
-          {upcomingStrength.map(item => (
-            <div key={item.id} className="history-card">
-              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div><strong>{item.date}</strong> · {item.template_name}</div>
-                </div>
-                <div className="row" style={{ alignItems: 'center' }}>
-                  <span className={badgeClass(item)}>{item.status}</span>
-                  {me.role === 'athlete' && item.status === 'planned' && <a className="button-link" href={`/sessions?scheduled_id=${item.id}`}>Start</a>}
-                </div>
+          <div className="card section-card">
+            <div className="section-head">
+              <div>
+                <div className="section-kicker">Upcoming</div>
+                <h3>This week and next</h3>
               </div>
             </div>
-          ))}
-          {upcomingStrength.length === 0 && <div className="small">No strength workouts planned right now.</div>}
-        </div>
-      </div>
-
-      <div className="card">
-        <h3>Upcoming calendar (14 days)</h3>
-        <div className="stack">
-          {calendarItems.map(item => (
-            <div key={`${item.kind}-${item.id}`} className="history-card">
-              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <strong>{item.date}</strong> · {item.kind === 'strength' ? `🏋️ ${item.template_name}` : `🏃 ${item.type}`}
-                  <div className="small">{item.kind === 'strength' ? 'Strength workout' : `${item.duration_seconds}s cardio`}</div>
+            <div className="stack">
+              {upcomingStrength.map(item => (
+                <div key={item.id} className="history-card">
+                  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div><strong>{item.date}</strong> · {item.template_name}</div>
+                    <div className="row" style={{ alignItems: 'center' }}>
+                      <span className={badgeClass(item)}>{item.status}</span>
+                      {me.role === 'athlete' && item.status === 'planned' && <a className="button-link" href={`/sessions?scheduled_id=${item.id}`}>Start workout</a>}
+                    </div>
+                  </div>
                 </div>
-                <div className="row" style={{ alignItems: 'center' }}>
-                  <span className={badgeClass(item)}>{item.kind === 'strength' ? item.status : 'cardio'}</span>
-                  {me.role === 'athlete' && item.kind === 'strength' && item.status === 'planned' && (
-                    <a className="button-link" href={`/sessions?scheduled_id=${item.id}`}>Start</a>
-                  )}
-                </div>
-              </div>
+              ))}
+              {upcomingStrength.length === 0 && <div className="small">No workouts planned right now.</div>}
             </div>
-          ))}
-          {calendarItems.length === 0 && <div className="small">No entries in the next 14 days.</div>}
+          </div>
+
+          <ScheduleWeekGrid
+            baseMonth={baseMonth}
+            setBaseMonth={setBaseMonth}
+            visibleWeeks={visibleWeeks}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            hasEvents={hasEvents}
+            dayStatusClass={dayStatusClass}
+          />
+
+          <ScheduleDayDetails
+            selectedDate={selectedDate}
+            selectedStrength={selectedStrength}
+            selectedCardio={selectedCardio}
+            templateById={templateById}
+            templateNameById={templateNameById}
+            exerciseNameById={exerciseNameById}
+            onMove={(id, toDate) => void run(async () => { await api.moveScheduled(token, id, toDate) })}
+            onCopy={(id, toDate) => void run(async () => { await api.copyScheduled(token, id, toDate) })}
+            onSkip={(id) => void run(async () => { await api.skipScheduled(token, id) })}
+            onDelete={(id) => void run(async () => { await api.deleteScheduled(token, id) })}
+          />
         </div>
+
+        <aside className="dashboard-side stack">
+          <div className="card section-card">
+            <div className="section-head"><div><div className="section-kicker">Schedule</div><h3>Quick add</h3></div></div>
+            <div className="stack">
+              <label className="stack"><span className="small">Program</span><select value={templateId} onChange={e => setTemplateId(e.target.value)}>{templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+              <label className="stack"><span className="small">Date</span><input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
+              <button className="primary" onClick={() => void run(async () => { await api.createScheduled(token, { athlete_id: athleteId, template_id: templateId, date }) })} disabled={!templateId || !date}>Schedule workout</button>
+            </div>
+          </div>
+
+          <div className="card section-card">
+            <div className="section-head"><div><div className="section-kicker">Automation</div><h3>Scheduling tools</h3></div></div>
+            <ScheduleAdvancedPanel
+              templateId={templateId}
+              patternType={patternType}
+              setPatternType={setPatternType}
+              patternStart={patternStart}
+              setPatternStart={setPatternStart}
+              patternEnd={patternEnd}
+              setPatternEnd={setPatternEnd}
+              intervalDays={intervalDays}
+              setIntervalDays={setIntervalDays}
+              weekday={weekday}
+              setWeekday={setWeekday}
+              onApplyPattern={() => void run(async () => {
+                await api.createScheduledPattern(token, {
+                  athlete_id: athleteId,
+                  template_id: templateId,
+                  start_date: patternStart,
+                  end_date: patternEnd,
+                  pattern_type: patternType,
+                  interval_days: patternType === 'interval_days' ? intervalDays : undefined,
+                  weekday: patternType === 'weekday' ? weekday : undefined,
+                })
+              })}
+              bulkFrom={bulkFrom}
+              setBulkFrom={setBulkFrom}
+              bulkTo={bulkTo}
+              setBulkTo={setBulkTo}
+              shiftDays={shiftDays}
+              setShiftDays={setShiftDays}
+              onBulkShift={() => void run(async () => {
+                for (const it of items.filter(i => i.status === 'planned' && i.date >= bulkFrom && i.date <= bulkTo)) {
+                  await api.moveScheduled(token, it.id, addDays(it.date, shiftDays))
+                }
+              })}
+              bulkTemplateId={bulkTemplateId}
+              setBulkTemplateId={setBulkTemplateId}
+              onBulkReplace={() => void run(async () => {
+                for (const it of items.filter(i => i.status === 'planned' && i.date >= bulkFrom && i.date <= bulkTo)) {
+                  await api.createScheduled(token, { athlete_id: athleteId, template_id: bulkTemplateId, date: it.date })
+                  await api.skipScheduled(token, it.id)
+                }
+              })}
+              onBulkSkip={() => void run(async () => {
+                for (const it of items.filter(i => i.status === 'planned' && i.date >= bulkFrom && i.date <= bulkTo)) {
+                  await api.skipScheduled(token, it.id)
+                }
+              })}
+              templates={templates}
+              rangedCount={items.filter(i => i.status === 'planned' && i.date >= bulkFrom && i.date <= bulkTo).length}
+            />
+          </div>
+        </aside>
       </div>
 
       {err && <p style={{ color: '#fca5a5' }}>{err}</p>}

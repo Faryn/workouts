@@ -20,26 +20,31 @@ export function Layout({
   const selectedAthlete = athleteOptions.find(a => a.id === selectedAthleteId)
 
   return (
-    <div className="container">
-      <div className="card row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <nav className="row" aria-label="Primary navigation">
+    <div className="app-shell">
+      <aside className="app-sidebar">
+        <div className="brand-block">
+          <div className="brand-eyebrow">Workout app</div>
+          <div className="brand-title">Stronger, simpler coaching</div>
+        </div>
+
+        <nav className="sidebar-nav" aria-label="Primary navigation">
           {me.role === 'admin' ? (
             <NavLink to="/admin/users" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Users</NavLink>
           ) : (
             <>
-              <NavLink to="/" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Home</NavLink>
-              <NavLink to="/templates" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Plans</NavLink>
-              <NavLink to="/schedule" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Week</NavLink>
+              <NavLink to="/" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Dashboard</NavLink>
+              <NavLink to="/templates" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Programs</NavLink>
               {me.role === 'athlete' && (
-                <NavLink to="/sessions" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Gym</NavLink>
+                <NavLink to="/sessions" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Train</NavLink>
               )}
             </>
           )}
         </nav>
-        <div className="row" style={{ alignItems: 'center' }}>
+
+        <div className="sidebar-footer">
           {me.role === 'trainer' && athleteOptions.length > 0 && (
-            <label className="row" style={{ alignItems: 'center' }}>
-              <span className="small">Athlete:</span>
+            <label className="stack">
+              <span className="small">Athlete</span>
               <select aria-label="Selected athlete" value={selectedAthleteId} onChange={e => onSelectAthlete(e.target.value)}>
                 {athleteOptions.map(a => (
                   <option key={a.id} value={a.id}>{a.email}</option>
@@ -49,14 +54,17 @@ export function Layout({
           )}
           <button onClick={onLogout}>Logout</button>
         </div>
-      </div>
-      {me.role === 'trainer' && selectedAthlete && (
-        <div className="card" style={{ padding: '12px 16px' }} role="status" aria-live="polite">
-          <div className="small">Trainer context</div>
-          <strong>Editing as coach for {selectedAthlete.email}</strong>
-        </div>
-      )}
-      {children}
+      </aside>
+
+      <main className="app-main">
+        {me.role === 'trainer' && selectedAthlete && (
+          <div className="context-banner" role="status" aria-live="polite">
+            <div className="small">Trainer context</div>
+            <strong>Viewing {selectedAthlete.email}</strong>
+          </div>
+        )}
+        {children}
+      </main>
     </div>
   )
 }

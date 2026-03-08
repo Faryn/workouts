@@ -107,8 +107,8 @@ test.beforeEach(async ({ page }) => {
 test('login renders dashboard', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Login' }).click()
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
-  await expect(page.getByText('athlete@example.com')).toBeVisible()
+  await expect(page.getByText('Keep training on track.')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Programs' })).toBeVisible()
 })
 
 test('template create and delete flow in UI', async ({ page }) => {
@@ -175,13 +175,13 @@ test('template create and delete flow in UI', async ({ page }) => {
 
   await page.goto('/')
   await page.getByRole('button', { name: 'Login' }).click()
-  await page.getByRole('link', { name: 'Plans' }).click()
+  await page.getByRole('link', { name: 'Programs' }).click()
 
   await expect(page.getByText('Upper A')).toBeVisible()
 
-  await page.getByPlaceholder('Template name').fill('Lower B')
+  await page.getByPlaceholder('Program name').fill('Lower B')
   await page.getByPlaceholder('Notes').fill('legs')
-  await page.getByRole('button', { name: 'Create' }).click()
+  await page.getByRole('button', { name: 'Create program' }).click()
 
   await expect(page.getByText('Lower B')).toBeVisible()
 

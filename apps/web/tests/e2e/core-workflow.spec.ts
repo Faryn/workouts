@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-test('trainer happy path: dashboard export + schedule screen loads', async ({ page }) => {
+test('trainer happy path: dashboard export + scheduling tools load on dashboard', async ({ page }) => {
   async function fulfillJson(route: any, body: unknown, methods = 'GET,POST,PATCH,DELETE,OPTIONS') {
     if (route.request().method() === 'OPTIONS') {
       await route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-methods': methods, 'access-control-allow-headers': '*' } })
@@ -37,14 +37,11 @@ test('trainer happy path: dashboard export + schedule screen loads', async ({ pa
   await page.goto('/')
   await page.getByRole('button', { name: 'Login' }).click()
 
-  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
-  await expect(page.getByText('trainer@example.com')).toBeVisible()
-  await expect(page.locator('select')).toBeVisible() // athlete selector for trainer
+  await expect(page.getByText('Keep training on track.')).toBeVisible()
+  await expect(page.getByText('Viewing athlete@example.com')).toBeVisible()
+  await expect(page.getByLabel('Selected athlete')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Export Sessions CSV' }).click()
-  await expect(page.getByText('Upcoming Calendar (14 days)')).toBeVisible()
-
-  await page.getByRole('link', { name: 'Week' }).click()
-  await expect(page.getByRole('heading', { name: 'Schedule', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Add' })).toBeVisible()
+  await page.getByRole('button', { name: 'Export sessions' }).click()
+  await expect(page.getByText('This week and next')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Schedule workout' })).toBeVisible()
 })
