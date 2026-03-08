@@ -4,12 +4,13 @@ services:
       context: ../apps/api
       dockerfile: Dockerfile
     environment:
-      APP_ENV: production
-      APP_BASE_URL: http://localhost
-      DATABASE_URL: sqlite:////data/app.db
-      API_TOKEN_SECRET: change-me
-      TRUSTED_PROXY: 172.16.0.0/12
-      EXPORT_PATH: /data/exports
+      APP_ENV: ${APP_ENV:-production}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost}
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////data/app.db}
+      API_TOKEN_SECRET: ${API_TOKEN_SECRET}
+      TRUSTED_PROXY: ${TRUSTED_PROXY:-172.16.0.0/12}
+      EXPORT_PATH: ${EXPORT_PATH:-/data/exports}
+      SEED_DEFAULT_TRAINER_AND_ATHLETE: ${SEED_DEFAULT_TRAINER_AND_ATHLETE:-false}
     volumes:
       - workout_data:/data
     expose:
