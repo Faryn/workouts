@@ -1,8 +1,13 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.core.security import hash_password
 from app.models.user import User
+
+
+def normalize_email(email: str) -> str:
+    return email.strip().lower()
 
 
 def ensure_admin(current_user: User) -> None:
@@ -26,12 +31,13 @@ def list_users(db: Session) -> list[dict]:
 
 
 def create_user(db: Session, email: str, name: str | None, role: str, password: str, active: bool) -> dict:
-    existing = db.query(User).filter(User.email == email).first()
+    normalized_email = normalize_email(email)
+    existing = db.query(User).filter(func.lower(User.email) == normalized_email).first()
     if existing:
         raise AppError(code='email_exists', message='Email already exists', status_code=409)
 
     row = User(
-        email=email,
+        email=normalized_email,
         name=name.strip() if name else None,
         role=role,
         password_hash=hash_password(password),
@@ -55,11 +61,13 @@ def patch_user(
     if not row:
         raise AppError(code='user_not_found', message='User not found', status_code=404)
 
-    if email is not None and email != row.email:
-        existing = db.query(User).filter(User.email == email).first()
-        if existing:
-            raise AppError(code='email_exists', message='Email already exists', status_code=409)
-        row.email = email
+    if email is not None:
+        normalized_email = normalize_email(email)
+        if normalized_email != row.email:
+            existing = db.query(User).filter(func.lower(User.email) == normalized_email).first()
+            if existing:
+                raise AppError(code='email_exists', message='Email already exists', status_code=409)
+            row.email = normalized_email
 
     if name is not None:
         row.name = name.strip() or None

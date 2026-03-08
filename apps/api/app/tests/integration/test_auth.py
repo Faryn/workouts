@@ -11,6 +11,13 @@ def test_login_invalid_credentials(client, seeded_user):
     assert res.status_code == 401
 
 
+def test_login_email_is_case_insensitive(client, seeded_user):
+    res = client.post('/v1/auth/login', json={'email': seeded_user.email.upper(), 'password': 'secret123'})
+    assert res.status_code == 200
+    body = res.json()
+    assert body['token_type'] == 'bearer'
+
+
 def test_me_requires_auth(client):
     res = client.get('/v1/auth/me')
     assert res.status_code == 401

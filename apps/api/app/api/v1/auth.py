@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -7,6 +8,7 @@ from app.core.db import get_db
 from app.core.security import create_access_token, verify_password
 from app.models.assignment import TrainerAssignment
 from app.models.user import User
+from app.services.admin_user_service import normalize_email
 
 router = APIRouter()
 
@@ -19,7 +21,8 @@ class LoginRequest(BaseModel):
 
 @router.post('/login')
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == payload.email).first()
+    normalized_email = normalize_email(payload.email)
+    user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
     if not user or not user.active or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid credentials')
 

@@ -33,6 +33,28 @@ def test_admin_can_crud_users_and_reset_password(client, seeded_admin):
     assert relogin.status_code == 401  # inactive after patch
 
 
+def test_admin_create_user_normalizes_email_and_enforces_case_insensitive_uniqueness(client, seeded_admin):
+    admin_headers = _auth(client, seeded_admin.email, 'secret123')
+
+    created = client.post('/v1/admin/users/', json={
+        'email': 'New-Athlete@Example.com',
+        'role': 'athlete',
+        'password': 'newpass123',
+        'active': True,
+    }, headers=admin_headers)
+    assert created.status_code == 200
+    assert created.json()['email'] == 'new-athlete@example.com'
+
+    duplicate = client.post('/v1/admin/users/', json={
+        'email': 'NEW-ATHLETE@EXAMPLE.COM',
+        'role': 'athlete',
+        'password': 'another123',
+        'active': True,
+    }, headers=admin_headers)
+    assert duplicate.status_code == 409
+    assert duplicate.json()['error']['code'] == 'email_exists'
+
+
 def test_non_admin_cannot_access_admin_users(client, seeded_user):
     athlete_headers = _auth(client, seeded_user.email, 'secret123')
     res = client.get('/v1/admin/users/', headers=athlete_headers)
