@@ -26,6 +26,7 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LIVE_SSH_HOST="${LIVE_SSH_HOST:?set LIVE_SSH_HOST, e.g. frank@thepowl.de}"
 LIVE_APP_DIR="${LIVE_APP_DIR:-/home/frank/workout-app}"
 LIVE_SSH_KEY="${LIVE_SSH_KEY:-/home/paul/.ssh/id_ed25519_thepowl_frank}"
+LIVE_BACKUP_ROOT="${LIVE_BACKUP_ROOT:-/home/frank/workout-app-backups}"
 APP_URL="${APP_URL:-https://workouts.thepowl.de}"
 ALLOW_DIRTY_SERVER="${ALLOW_DIRTY_SERVER:-0}"
 SKIP_PUSH="${SKIP_PUSH:-0}"
@@ -61,7 +62,7 @@ if [[ "${SKIP_PUSH}" != "1" ]]; then
 fi
 
 echo "[deploy] backing up live data"
-ssh -i "${LIVE_SSH_KEY}" -o IdentitiesOnly=yes "${LIVE_SSH_HOST}" "cd '${LIVE_APP_DIR}/infra/backup' && ./backup.sh"
+ssh -i "${LIVE_SSH_KEY}" -o IdentitiesOnly=yes "${LIVE_SSH_HOST}" "mkdir -p '${LIVE_BACKUP_ROOT}' && cd '${LIVE_APP_DIR}/infra/backup' && BACKUP_ROOT='${LIVE_BACKUP_ROOT}' ./backup.sh"
 
 echo "[deploy] pulling + rebuilding live stack"
 ssh -i "${LIVE_SSH_KEY}" -o IdentitiesOnly=yes "${LIVE_SSH_HOST}" "set -e; cd '${LIVE_APP_DIR}' && git pull --ff-only && cd infra && docker compose up -d --build"

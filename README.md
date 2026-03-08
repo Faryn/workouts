@@ -91,10 +91,16 @@ docker compose down
 ```
 
 ## Backup / restore (SQLite + exports)
+Backups default to the server user's home directory, outside the repo:
+- backups: `~/workout-app-backups`
+- cron log: `~/.local/state/workout-app/backup-cron.log`
+
 ```bash
 cd infra/backup
 ./backup.sh
-./restore.sh ./out/<timestamp>
+./restore.sh ~/workout-app-backups/<timestamp>
+# optional override
+BACKUP_ROOT=/some/other/path ./backup.sh
 ```
 
 ## Safer live deploy flow

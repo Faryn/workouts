@@ -9,8 +9,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INFRA_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${INFRA_DIR}/docker-compose.yml"
+DEFAULT_BACKUP_ROOT="${HOME}/workout-app-backups"
 
-BACKUP_ROOT="${BACKUP_ROOT:-${INFRA_DIR}/backup/out}"
+BACKUP_ROOT="${BACKUP_ROOT:-${DEFAULT_BACKUP_ROOT}}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 TARGET_DIR="${BACKUP_ROOT}/${STAMP}"
 
