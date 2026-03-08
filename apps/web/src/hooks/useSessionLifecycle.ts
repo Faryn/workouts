@@ -18,8 +18,46 @@ export type SetDraft = {
   status: 'done' | 'skipped'
 }
 
+export type SessionCompletionSummary = {
+  status: string
+  scheduledWorkoutStatus?: string | null
+  durationSeconds: number | null
+  doneSets: number
+  skippedSets: number
+  notes: string
+}
+
 function setKey(loggedExerciseId: string, setNumber: number) {
   return `${loggedExerciseId}:${setNumber}`
+}
+
+function summarizeSession(session: SessionDetail | null, scheduledWorkoutStatus?: string | null): SessionCompletionSummary {
+  let doneSets = 0
+  let skippedSets = 0
+  if (session) {
+    for (const ex of session.logged_exercises ?? []) {
+      for (const st of ex.sets ?? []) {
+        if (st.status === 'done') doneSets += 1
+        if (st.status === 'skipped') skippedSets += 1
+      }
+    }
+  }
+
+  let durationSeconds: number | null = null
+  if (session?.started_at) {
+    const started = new Date(session.started_at).getTime()
+    const ended = Date.now()
+    if (!Number.isNaN(started)) durationSeconds = Math.max(0, Math.round((ended - started) / 1000))
+  }
+
+  return {
+    status: 'completed',
+    scheduledWorkoutStatus,
+    durationSeconds,
+    doneSets,
+    skippedSets,
+    notes: session?.notes ?? '',
+  }
 }
 
 export function useSessionLifecycle(params: {
@@ -63,6 +101,7 @@ export function useSessionLifecycle(params: {
   const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'ok' | 'error'>('idle')
   const [historyDetails, setHistoryDetails] = useState<Record<string, SessionDetail | null>>({})
   const [sessionNotes, setSessionNotes] = useState('')
+  const [completionSummary, setCompletionSummary] = useState<SessionCompletionSummary | null>(null)
 
   const sessionRef = useRef<SessionDetail | null>(null)
   const notesRef = useRef('')
@@ -304,8 +343,10 @@ export function useSessionLifecycle(params: {
 
   async function finish() {
     if (!session) return
+    const snapshot = session
     try {
       const done = await api.finishSession(token, session.id, session.version)
+      setCompletionSummary(summarizeSession(snapshot, done.scheduled_workout_status))
       onNotice(`Session ${done.status}, scheduled=${done.scheduled_workout_status ?? 'n/a'}`)
       setSession(null)
       setSessionNotes('')
@@ -354,6 +395,8 @@ export function useSessionLifecycle(params: {
     sessionNotes,
     setSessionNotes,
     hasActiveSession: !!session,
+    completionSummary,
+    dismissCompletionSummary: () => setCompletionSummary(null),
     loadAll,
     startFromTemplate,
     startFromScheduled,

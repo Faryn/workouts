@@ -127,15 +127,13 @@ export function useScheduleData(params: { token: string; athleteId: string }) {
     await load()
   }
 
-  async function moveById(id: string, currentDate: string) {
-    const to = prompt('Move to date (YYYY-MM-DD):', currentDate)
+  async function moveById(id: string, to: string) {
     if (!to) return
     await api.moveScheduled(token, id, to)
     await load()
   }
 
-  async function copyById(id: string, currentDate: string) {
-    const to = prompt('Copy to date (YYYY-MM-DD):', currentDate)
+  async function copyById(id: string, to: string) {
     if (!to) return
     await api.copyScheduled(token, id, to)
     await load()

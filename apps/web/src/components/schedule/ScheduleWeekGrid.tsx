@@ -12,11 +12,18 @@ export function ScheduleWeekGrid(props: {
   const today = iso(new Date())
   return (
     <div className="card">
-      <h3>Week view</h3>
-      <div className="row" style={{ marginBottom: 10 }}>
-        <button onClick={() => props.setBaseMonth(addMonths(props.baseMonth, -1))}>← Month</button>
-        <strong style={{ paddingTop: 10 }}>{monthLabel(props.baseMonth)}</strong>
-        <button onClick={() => props.setBaseMonth(addMonths(props.baseMonth, 1))}>Month →</button>
+      <h3>Calendar</h3>
+      <div className="row" style={{ marginBottom: 10, justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="row">
+          <button onClick={() => props.setBaseMonth(addMonths(props.baseMonth, -1))}>← Month</button>
+          <strong style={{ paddingTop: 10 }}>{monthLabel(props.baseMonth)}</strong>
+          <button onClick={() => props.setBaseMonth(addMonths(props.baseMonth, 1))}>Month →</button>
+        </div>
+        <button className="ghost" onClick={() => {
+          const now = new Date()
+          props.setBaseMonth(new Date(now.getFullYear(), now.getMonth(), 1))
+          props.setSelectedDate(today)
+        }}>Today</button>
       </div>
 
       <div className="small" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 8 }}>
@@ -28,33 +35,34 @@ export function ScheduleWeekGrid(props: {
           {week.map((d) => {
             const ds = iso(d)
             const isToday = ds === today
+            const isSelected = props.selectedDate === ds
             return (
               <button
                 key={ds}
                 onClick={() => props.setSelectedDate(ds)}
                 style={{
-                  minHeight: 64,
+                  minHeight: 72,
                   padding: 8,
                   borderRadius: 10,
-                  border: props.selectedDate === ds
+                  border: isSelected
                     ? '2px solid var(--accent)'
                     : isToday
                       ? '2px solid var(--accent-2)'
                       : `1px solid ${props.dayStatusClass(ds)}`,
-                  background: isToday ? 'rgba(59,130,246,0.12)' : undefined,
+                  background: isSelected ? 'rgba(59,130,246,0.14)' : isToday ? 'rgba(59,130,246,0.12)' : undefined,
                   position: 'relative',
                   textAlign: 'left',
                 }}
               >
-                <div>{d.getDate()}</div>
+                <div style={{ fontWeight: isSelected ? 700 : 500 }}>{d.getDate()}</div>
                 {props.hasEvents(ds) && (
                   <span
                     style={{
                       position: 'absolute',
                       bottom: 6,
                       right: 8,
-                      width: 8,
-                      height: 8,
+                      width: 10,
+                      height: 10,
                       borderRadius: '50%',
                       background: props.dayStatusClass(ds),
                       display: 'inline-block',

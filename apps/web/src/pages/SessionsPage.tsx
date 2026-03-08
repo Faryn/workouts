@@ -71,6 +71,8 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
     sessionNotes,
     setSessionNotes,
     hasActiveSession,
+    completionSummary,
+    dismissCompletionSummary,
     loadAll,
     startFromTemplate,
     startFromScheduled,
@@ -106,6 +108,12 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
   )
 
   useEffect(() => {
+    if (!notice) return
+    const id = window.setTimeout(() => setNotice(null), 3500)
+    return () => window.clearTimeout(id)
+  }, [notice])
+
+  useEffect(() => {
     const fromUrl = searchParams.get('scheduled_id')
     if (fromUrl) setScheduledId(fromUrl)
     void loadAll()
@@ -114,7 +122,31 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
 
   return (
     <>
-      {notice && <div className="notice-banner" style={{ marginBottom: 18 }}><span>{notice}</span><button className="ghost" onClick={() => setNotice(null)}>Dismiss</button></div>}
+      {notice && <div className="toast-banner"><span>{notice}</span><button className="ghost" onClick={() => setNotice(null)}>Dismiss</button></div>}
+
+      {completionSummary && (
+        <div className="card">
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ marginBottom: 0 }}>Workout complete</h3>
+            <button className="ghost" onClick={dismissCompletionSummary}>Close</button>
+          </div>
+          <div className="grid-2" style={{ marginTop: 12 }}>
+            <div className="metric-card">
+              <div className="small">Duration</div>
+              <div className="metric-value">{completionSummary.durationSeconds != null ? `${Math.round(completionSummary.durationSeconds / 60)} min` : '—'}</div>
+            </div>
+            <div className="metric-card">
+              <div className="small">Done / skipped</div>
+              <div className="metric-value">{completionSummary.doneSets} / {completionSummary.skippedSets}</div>
+            </div>
+          </div>
+          <div className="row small" style={{ marginTop: 12 }}>
+            <span className="status-badge status-completed">{completionSummary.status}</span>
+            {completionSummary.scheduledWorkoutStatus && <span className="status-badge status-planned">scheduled {completionSummary.scheduledWorkoutStatus}</span>}
+          </div>
+          {completionSummary.notes && <p className="small" style={{ marginTop: 12 }}>Notes: {completionSummary.notes}</p>}
+        </div>
+      )}
 
       <SessionStarter
         templates={templates}
