@@ -42,6 +42,6 @@ test('trainer happy path: dashboard export + scheduling tools load on dashboard'
   await expect(page.getByLabel('Selected athlete')).toBeVisible()
 
   await page.getByRole('button', { name: 'Export sessions' }).click()
-  await expect(page.getByText('This week and next')).toBeVisible()
+  await expect(page.getByText('What’s coming up')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Schedule workout' })).toBeVisible()
 })

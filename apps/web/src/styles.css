@@ -52,8 +52,10 @@ button:active { transform: translateY(1px); }
 button.primary { background: linear-gradient(180deg, var(--accent-2), var(--accent)); border-color: var(--accent); color: white; font-weight: 700; }
 button.ghost { background: transparent; }
 a { color: var(--accent-2); text-decoration: none; }
-.button-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 12px; border-radius: 12px; border: 1px solid #36465d; background: var(--surface-3); color: var(--text); line-height: 1; }
+.button-link { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 12px; border-radius: 12px; border: 1px solid #36465d; background: var(--surface-3); color: var(--text); line-height: 1; gap: 8px; }
 .button-link:hover { border-color: var(--accent-2); }
+.button-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.1em; opacity: 0.92; }
+.action-row > button, .action-row > .button-link { min-width: 150px; justify-content: center; }
 .small { color: var(--muted); font-size: 0.92rem; }
 h1,h2,h3 { margin-top: 0; letter-spacing: 0.2px; }
 ul { margin: 0; padding-left: 18px; }
@@ -83,7 +85,7 @@ ul { margin: 0; padding-left: 18px; }
 .suggestion-item:hover { background: #0f1a2d; }
 .suggestion-create { color: #93c5fd; font-weight: 600; }
 .sticky-set-actions { position: sticky; bottom: 8px; z-index: 20; padding: 12px; border: 1px solid #374151; border-radius: 14px; background: #0b1220; margin-bottom: 12px; }
-.nav-link { padding: 11px 12px; border-radius: 12px; border: 1px solid transparent; color: var(--text); }
+.nav-link { padding: 11px 12px; border-radius: 12px; border: 1px solid transparent; color: var(--text); display: inline-flex; align-items: center; gap: 8px; }
 .nav-link.active, .nav-link:hover { border-color: rgba(96,165,250,0.35); background: rgba(59, 130, 246, 0.14); }
 .advanced-panel summary { list-style: none; cursor: pointer; user-select: none; font-weight: 600; color: var(--accent-2); }
 .history-card { border: 1px solid var(--border); border-radius: 16px; padding: 14px; background: rgba(15,23,42,0.8); }

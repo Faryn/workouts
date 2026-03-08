@@ -15,6 +15,20 @@ function badgeClass(item: CalendarItem) {
   }
 }
 
+function relativeDateLabel(dateStr: string) {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const target = new Date(`${dateStr}T00:00:00`)
+  const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000)
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Tomorrow'
+  if (diffDays === -1) return 'Yesterday'
+  if (diffDays > 1 && diffDays < 7) return `In ${diffDays} days`
+  if (diffDays >= 7 && diffDays < 14) return 'Next week'
+  if (diffDays < -1) return `${Math.abs(diffDays)} days ago`
+  return target.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
 export function DashboardPage({ me, token, athleteId }: { me: { id: string; email: string; role: string }; token: string; athleteId: string }) {
   const [err, setErr] = useState<string | null>(null)
   const [calendarItems, setCalendarItems] = useState<CalendarItem[]>([])
@@ -128,12 +142,12 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
         </div>
         <div className="hero-actions">
           {me.role === 'athlete' && inProgress && (
-            <a href="/sessions"><button className="primary">Resume workout</button></a>
+            <a href="/sessions"><button className="primary"><span className="button-icon">▶</span>Resume workout</button></a>
           )}
           {me.role === 'athlete' && !inProgress && todaysPlanned && (
-            <a href={`/sessions?scheduled_id=${todaysPlanned.id}`}><button className="primary">Start workout</button></a>
+            <a href={`/sessions?scheduled_id=${todaysPlanned.id}`}><button className="primary"><span className="button-icon">▶</span>Start workout</button></a>
           )}
-          <button onClick={() => void run(() => api.exportSessionsCsv(token, athleteId))}>Export sessions</button>
+          <button onClick={() => void run(async () => { await api.exportSessionsCsv(token, athleteId) })}><span className="button-icon">⤓</span>Export sessions</button>
         </div>
       </section>
 
@@ -148,17 +162,20 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
             <div className="section-head">
               <div>
                 <div className="section-kicker">Upcoming</div>
-                <h3>This week and next</h3>
+                <h3>What’s coming up</h3>
               </div>
             </div>
             <div className="stack">
               {upcomingStrength.map(item => (
                 <div key={item.id} className="history-card">
                   <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div><strong>{item.date}</strong> · {item.template_name}</div>
+                    <div>
+                      <div className="small">{relativeDateLabel(item.date)}</div>
+                      <strong>{item.template_name}</strong>
+                    </div>
                     <div className="row" style={{ alignItems: 'center' }}>
                       <span className={badgeClass(item)}>{item.status}</span>
-                      {me.role === 'athlete' && item.status === 'planned' && <a className="button-link" href={`/sessions?scheduled_id=${item.id}`}>Start workout</a>}
+                      {me.role === 'athlete' && item.status === 'planned' && <a className="button-link" href={`/sessions?scheduled_id=${item.id}`}><span className="button-icon">▶</span>Start workout</a>}
                     </div>
                   </div>
                 </div>
@@ -197,7 +214,7 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
             <div className="stack">
               <label className="stack"><span className="small">Program</span><select value={templateId} onChange={e => setTemplateId(e.target.value)}>{templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
               <label className="stack"><span className="small">Date</span><input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
-              <button className="primary" onClick={() => void run(async () => { await api.createScheduled(token, { athlete_id: athleteId, template_id: templateId, date }) })} disabled={!templateId || !date}>Schedule workout</button>
+              <button className="primary" onClick={() => void run(async () => { await api.createScheduled(token, { athlete_id: athleteId, template_id: templateId, date }) })} disabled={!templateId || !date}><span className="button-icon">＋</span>Schedule workout</button>
             </div>
           </div>
 
