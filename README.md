@@ -2,6 +2,8 @@
 
 Strength-focused workout app (athlete + trainer), API-first.
 
+Current live deployment: `https://workouts.thepowl.de`
+
 ## Current status
 Implemented slices include:
 - Auth (login + me) with optional athlete-scoped trainer/admin API tokens
@@ -21,6 +23,10 @@ Implemented slices include:
   - relative-date upcoming cards
   - icon-enhanced actions
   - accessibility/focus improvements
+  - Train page hierarchy centered on resume / today’s workout first
+  - passive autosave status inside the in-progress workout header
+  - mobile top bar with current section label + left-side slide-out navigation menu
+  - tighter calendar header alignment and more compact month-view day cells
 - Cardio logging
 - Weights-over-time stats
 - CSV exports (sessions, exercise history, cardio)
@@ -115,11 +121,17 @@ LIVE_SSH_HOST=frank@thepowl.de just deploy-live
 What `deploy-live` does:
 - refuses deploy if local repo is dirty
 - refuses deploy if server repo is dirty (unless explicitly overridden)
-- runs a live backup before rollout
+- runs a live backup before rollout (default: `~/backups/workout-app` on the server)
 - pulls and rebuilds on the server
 - runs a post-deploy smoke test that checks env wiring, DB visibility, server JWT auth, and expected users
 
 See `docs/admin/deployment.md` for guardrails and restore verification.
+
+## Working UI conventions
+- Primary web navigation is **Dashboard / Programs / Train**.
+- The Train page should prioritize **resume / today’s workout first**, then secondary/manual start flows.
+- On mobile, keep the current section visible and expose nav through the left-side drawer toggle.
+- Calendar month views should favor compact scanning over oversized tap targets.
 
 ## Top-level structure
 - `apps/api` – FastAPI backend

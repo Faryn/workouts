@@ -22,7 +22,11 @@ This structure keeps routers thin and makes service-layer unit testing easier.
 The web app is organized around:
 - **Dashboard** — schedule overview, upcoming workouts, calendar, quick scheduling, advanced scheduling tools
 - **Programs** — reusable workout/program definitions backed by template APIs
-- **Train** — live workout execution and session history for athletes
+- **Train** — live workout execution and session history for athletes, with the UI prioritizing resume / today’s workout first
+
+Mobile/navigation notes:
+- Primary mobile navigation is exposed through a sticky top bar that keeps the current section visible.
+- The menu toggle is left-aligned and opens the left-side slide-out nav drawer.
 
 This is a vocabulary/UI-layer decision; the underlying API still exposes `templates`, `scheduled-workouts`, and `sessions` resources.
 

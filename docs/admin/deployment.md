@@ -18,6 +18,10 @@ Operational guidance:
 ## Backup
 Scripts live in `infra/backup/`.
 
+Default runtime backup paths (outside the repo):
+- backups: `~/backups/workout-app`
+- cron log: `~/.local/state/workout-app/backup-cron.log`
+
 Create backup:
 ```bash
 cd infra/backup
@@ -39,7 +43,7 @@ Notes:
 ## Restore
 ```bash
 cd infra/backup
-./restore.sh ./out/<timestamp>
+./restore.sh ~/backups/workout-app/<timestamp>
 ```
 
 Safety behavior:
@@ -70,7 +74,7 @@ APP_URL=https://workouts.thepowl.de \
 ### What the guarded deploy does
 1. Fails if the local repo is dirty.
 2. Fails if the server repo is dirty (unless `ALLOW_DIRTY_SERVER=1` is set intentionally).
-3. Runs `infra/backup/backup.sh` on the live host before rollout.
+3. Runs `infra/backup/backup.sh` on the live host before rollout, writing to `/home/frank/backups/workout-app` by default.
 4. Pulls latest code with `git pull --ff-only`.
 5. Rebuilds/restarts with Docker Compose.
 6. Runs a smoke test that verifies:
@@ -82,6 +86,7 @@ APP_URL=https://workouts.thepowl.de \
 ### Override knobs
 - `ALLOW_DIRTY_SERVER=1` — allow deploy even if the server checkout has local changes.
 - `SKIP_PUSH=1` — skip `git push origin HEAD` inside the deploy script.
+- `LIVE_BACKUP_ROOT=...` — override the live backup destination root.
 - `EXPECTED_USER_EMAILS=...` — override which live users the smoke test must see.
 
 ### Why this exists

@@ -59,6 +59,10 @@
 ## Notes
 - Documentation distinguishes implemented vs planned to avoid capability drift.
 - Current web navigation is centered on **Dashboard / Programs / Train**.
+- On mobile, navigation uses a sticky top bar with the current section label and a left-side slide-out menu.
 - Scheduling UI is now dashboard-first rather than a separate primary-nav tab.
+- The Train page now prioritizes resume / today’s planned workout before secondary start flows.
+- Active workout autosave is presented as passive status in the in-progress workout header rather than as a separate action row.
+- Calendar month view uses a compact day-cell layout with subtle event dots, with strong emphasis reserved for selected day and today.
 - Error responses support structured shape for app-level authorization/domain errors:
   - `{ "error": { "code": string, "message": string, "details": object } }`
