@@ -97,6 +97,22 @@ cd infra/backup
 ./restore.sh ./out/<timestamp>
 ```
 
+## Safer live deploy flow
+```bash
+# dry safety checks / smoke test on live host
+just smoke-live
+
+# full guarded deploy (requires LIVE_SSH_HOST)
+LIVE_SSH_HOST=frank@thepowl.de just deploy-live
+```
+
+What `deploy-live` does:
+- refuses deploy if local repo is dirty
+- refuses deploy if server repo is dirty (unless explicitly overridden)
+- runs a live backup before rollout
+- pulls and rebuilds on the server
+- runs a post-deploy smoke test that checks env wiring, DB visibility, server JWT auth, and expected users
+
 See `docs/admin/deployment.md` for guardrails and restore verification.
 
 ## Top-level structure

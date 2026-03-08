@@ -53,6 +53,40 @@ cd infra
 docker compose up -d
 ```
 
+## Safer live deploy flow
+Use the checked-in scripts from repo root:
+
+```bash
+# run smoke checks against the current live stack
+APP_URL=https://workouts.thepowl.de ./scripts/smoke_test_live.sh
+
+# guarded deploy to the live host
+LIVE_SSH_HOST=frank@thepowl.de \
+LIVE_SSH_KEY=/home/paul/.ssh/id_ed25519_thepowl_frank \
+APP_URL=https://workouts.thepowl.de \
+./scripts/deploy_live.sh
+```
+
+### What the guarded deploy does
+1. Fails if the local repo is dirty.
+2. Fails if the server repo is dirty (unless `ALLOW_DIRTY_SERVER=1` is set intentionally).
+3. Runs `infra/backup/backup.sh` on the live host before rollout.
+4. Pulls latest code with `git pull --ff-only`.
+5. Rebuilds/restarts with Docker Compose.
+6. Runs a smoke test that verifies:
+   - `DATABASE_URL` points to `/data/app.db`
+   - `API_TOKEN_SECRET` is present and not the fallback placeholder
+   - the live DB contains expected user rows
+   - the server-side admin JWT can still authenticate against the live API
+
+### Override knobs
+- `ALLOW_DIRTY_SERVER=1` — allow deploy even if the server checkout has local changes.
+- `SKIP_PUSH=1` — skip `git push origin HEAD` inside the deploy script.
+- `EXPECTED_USER_EMAILS=...` — override which live users the smoke test must see.
+
+### Why this exists
+This prevents the exact class of failure where a deploy accidentally starts the API with fallback config values (for example `API_TOKEN_SECRET=change-me`) even though the data volume is intact.
+
 ## Web deploy cache behavior
 - Frontend service worker cache name is build-versioned (`/sw.js?v=<build-version>`), so normal rebuild/redeploy should rotate cache automatically.
 - If a client still shows stale UI after deploy, do a hard refresh and, if needed, unregister the service worker once in browser DevTools.

@@ -45,6 +45,12 @@ backup-health:
 restore-drill:
   cd infra/backup && ./restore-drill.sh
 
+smoke-live:
+  ./scripts/smoke_test_live.sh
+
+deploy-live:
+  ./scripts/deploy_live.sh
+
 release-check:
   just test-api
   just lint-api
