@@ -8,7 +8,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_SCRIPT="${SCRIPT_DIR}/backup.sh"
-DEFAULT_BACKUP_ROOT="${HOME}/workout-app-backups"
+DEFAULT_BACKUP_ROOT="${HOME}/backups/workout-app"
 DEFAULT_CRON_LOG="${HOME}/.local/state/workout-app/backup-cron.log"
 BACKUP_ROOT="${BACKUP_ROOT:-${DEFAULT_BACKUP_ROOT}}"
 BACKUP_HOUR="${BACKUP_HOUR:-3}"

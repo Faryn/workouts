@@ -4,7 +4,7 @@ set -euo pipefail
 # Verifies latest backup can pass SQLite integrity check (without mutating runtime DB).
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULT_BACKUP_ROOT="${HOME}/workout-app-backups"
+DEFAULT_BACKUP_ROOT="${HOME}/backups/workout-app"
 BACKUP_ROOT="${BACKUP_ROOT:-${DEFAULT_BACKUP_ROOT}}"
 LATEST="$(find "${BACKUP_ROOT}" -mindepth 1 -maxdepth 1 -type d | sort | tail -n 1)"
 

@@ -36,20 +36,21 @@ export function Layout({
   return (
     <div className="app-shell">
       <header className="mobile-topbar">
-        <div>
-          <div className="mobile-topbar-kicker">Workout app</div>
-          <strong>{currentSectionLabel}</strong>
+        <div className="mobile-topbar-main">
+          <button
+            type="button"
+            className="ghost mobile-nav-toggle"
+            aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'}
+            aria-expanded={mobileNavOpen}
+            onClick={() => setMobileNavOpen(open => !open)}
+          >
+            <span className="button-icon">☰</span>
+          </button>
+          <div>
+            <div className="mobile-topbar-kicker">Workout app</div>
+            <strong>{currentSectionLabel}</strong>
+          </div>
         </div>
-        <button
-          type="button"
-          className="ghost mobile-nav-toggle"
-          aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'}
-          aria-expanded={mobileNavOpen}
-          onClick={() => setMobileNavOpen(open => !open)}
-        >
-          <span className="button-icon">☰</span>
-          Menu
-        </button>
       </header>
 
       <div

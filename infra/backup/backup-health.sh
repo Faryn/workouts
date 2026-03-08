@@ -6,7 +6,7 @@ set -euo pipefail
 # 0 = healthy, 1 = warning/failure
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULT_BACKUP_ROOT="${HOME}/workout-app-backups"
+DEFAULT_BACKUP_ROOT="${HOME}/backups/workout-app"
 BACKUP_ROOT="${BACKUP_ROOT:-${DEFAULT_BACKUP_ROOT}}"
 MAX_AGE_HOURS="${MAX_AGE_HOURS:-26}"
 
