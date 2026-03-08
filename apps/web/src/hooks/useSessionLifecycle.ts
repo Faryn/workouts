@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   api,
@@ -10,6 +10,7 @@ import {
 } from '../lib/api'
 import { ApiError } from '../lib/api/client'
 import { errorMessage } from '../lib/errors'
+import { useActiveSessionBackup } from './useActiveSessionBackup'
 
 export type SetDraft = {
   actual_weight: string
@@ -19,14 +20,6 @@ export type SetDraft = {
 
 function setKey(loggedExerciseId: string, setNumber: number) {
   return `${loggedExerciseId}:${setNumber}`
-}
-
-type SessionBackup = {
-  sessionId: string
-  draftValues: Record<string, SetDraft>
-  activeSetKey: string | null
-  notes: string
-  savedAt: string
 }
 
 export function useSessionLifecycle(params: {
@@ -71,7 +64,6 @@ export function useSessionLifecycle(params: {
   const [historyDetails, setHistoryDetails] = useState<Record<string, SessionDetail | null>>({})
   const [sessionNotes, setSessionNotes] = useState('')
 
-  const backupKey = useMemo(() => `active-session-backup:${athleteId}`, [athleteId])
   const sessionRef = useRef<SessionDetail | null>(null)
   const notesRef = useRef('')
 
@@ -83,19 +75,13 @@ export function useSessionLifecycle(params: {
     notesRef.current = sessionNotes
   }, [sessionNotes])
 
-  function readBackup(): SessionBackup | null {
-    try {
-      const raw = localStorage.getItem(backupKey)
-      if (!raw) return null
-      return JSON.parse(raw) as SessionBackup
-    } catch {
-      return null
-    }
-  }
-
-  function clearBackup() {
-    localStorage.removeItem(backupKey)
-  }
+  const { loadBackup, clearBackup } = useActiveSessionBackup({
+    athleteId,
+    session,
+    draftValues,
+    activeSetKey,
+    notes: sessionNotes,
+  })
 
   function initializeSetDraftsFromSession(s: SessionDetail | null, opts?: { preserveLocalDrafts?: boolean }) {
     if (!s) return
@@ -113,7 +99,7 @@ export function useSessionLifecycle(params: {
       }
     }
 
-    const backup = opts?.preserveLocalDrafts ? readBackup() : null
+    const backup = opts?.preserveLocalDrafts ? loadBackup() : null
     if (backup && backup.sessionId === s.id) {
       setDraftValues({ ...next, ...backup.draftValues })
       setActiveSetKey(backup.activeSetKey ?? firstKey)
@@ -209,21 +195,6 @@ export function useSessionLifecycle(params: {
       window.removeEventListener('beforeunload', onBeforeUnload)
     }
   }, [session, token])
-
-  useEffect(() => {
-    if (!session || session.status !== 'in_progress') {
-      clearBackup()
-      return
-    }
-    const payload: SessionBackup = {
-      sessionId: session.id,
-      draftValues,
-      activeSetKey,
-      notes: sessionNotes,
-      savedAt: new Date().toISOString(),
-    }
-    localStorage.setItem(backupKey, JSON.stringify(payload))
-  }, [backupKey, draftValues, activeSetKey, session, sessionNotes])
 
   useEffect(() => {
     if (!session || session.status !== 'in_progress') return
