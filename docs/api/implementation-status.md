@@ -16,13 +16,14 @@
 - `PATCH /v1/exercises/{exercise_id}`
 - `DELETE /v1/exercises/{exercise_id}`
 
-## Templates
+## Programs / Templates
 - `GET /v1/templates/` (supports optional `athlete_id` context for trainer/admin)
 - `POST /v1/templates/`
 - `PATCH /v1/templates/{template_id}`
 - `DELETE /v1/templates/{template_id}`
 - Supports ordered template exercises with planned sets/reps/weight/rest/notes.
 - Template payload includes `exercise_name` fallback and `can_manage` flag for role-aware UI actions.
+- Web UI presents these as **Programs**.
 - Template create/patch/delete writes `AuditEvent` entries.
 
 ## Scheduling + Calendar
@@ -57,5 +58,7 @@
 
 ## Notes
 - Documentation distinguishes implemented vs planned to avoid capability drift.
+- Current web navigation is centered on **Dashboard / Programs / Train**.
+- Scheduling UI is now dashboard-first rather than a separate primary-nav tab.
 - Error responses support structured shape for app-level authorization/domain errors:
   - `{ "error": { "code": string, "message": string, "details": object } }`

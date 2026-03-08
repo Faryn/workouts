@@ -18,6 +18,14 @@
 ## Notes
 This structure keeps routers thin and makes service-layer unit testing easier.
 
+## Current web product model
+The web app is organized around:
+- **Dashboard** — schedule overview, upcoming workouts, calendar, quick scheduling, advanced scheduling tools
+- **Programs** — reusable workout/program definitions backed by template APIs
+- **Train** — live workout execution and session history for athletes
+
+This is a vocabulary/UI-layer decision; the underlying API still exposes `templates`, `scheduled-workouts`, and `sessions` resources.
+
 ## Session reliability architecture
 The session flow now uses an optimistic concurrency pattern:
 - `workout_sessions.version` and `updated_at` are returned in session payloads.

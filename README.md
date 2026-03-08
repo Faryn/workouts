@@ -7,15 +7,20 @@ Implemented slices include:
 - Auth (login + me) with optional athlete-scoped trainer/admin API tokens
 - Admin user management (list/create/update users + password reset)
 - Exercise CRUD with visibility/ownership filtering
-- Template CRUD with ordered template exercises, role-aware `can_manage`, and `exercise_name` fallback
+- Program CRUD (template-backed) with ordered exercises, role-aware `can_manage`, and `exercise_name` fallback
 - Scheduling (create/move/copy/skip/delete + recurring patterns)
-- Calendar feed (strength + cardio merged) and compact weekly calendar UI
+- Dashboard-centered schedule/calendar flow (upcoming workouts, calendar, selected-day details, quick add, advanced scheduling tools)
 - Session flow (start, log sets, autosave, finish, history, latest in-progress)
 - Session reliability hardening:
   - optimistic concurrency via `version` + `updated_at`
   - stale-write protection on set logs / autosave / finish
   - duplicate in-progress session protection
   - resumable active session UX with local backup + autosave on visibility/page-hide
+- UI refinements across Dashboard / Programs / Train:
+  - consistent action labels
+  - relative-date upcoming cards
+  - icon-enhanced actions
+  - accessibility/focus improvements
 - Cardio logging
 - Weights-over-time stats
 - CSV exports (sessions, exercise history, cardio)
@@ -68,11 +73,16 @@ just restore-drill
 ```bash
 cd infra
 docker compose up -d --build
+docker compose exec -T api bash -lc "cd /app && alembic stamp c7b6c3b1d2e4"
 ```
 
 Then open:
 - Web: `http://<server-ip>:8088`
 - API docs: `http://<server-ip>:8080/docs` (via api container exposure/proxy setup)
+
+Notes:
+- The API container now includes `alembic.ini` + `alembic/` and uses `DATABASE_URL` for Alembic.
+- The current live SQLite database predates Alembic tracking, so rollout uses `alembic stamp` to mark the existing schema at the current revision instead of replaying initial migrations.
 
 Stop:
 ```bash
