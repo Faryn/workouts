@@ -23,7 +23,6 @@ export function SessionStarter(props: {
   onScheduledId: (v: string) => void
   onStartFromTemplate: () => void
   onStartFromScheduled: () => void
-  onClearDraft: () => void
   onResume: () => void
   err?: string | null
 }) {
@@ -140,11 +139,6 @@ export function SessionStarter(props: {
             </button>
           </div>
         </section>
-      </div>
-
-      <div className="train-utility-row">
-        <button className="ghost" onClick={props.onClearDraft}><span className="button-icon">⌫</span>Clear draft</button>
-        <button className="ghost" onClick={props.onResume}><span className="button-icon">↻</span>Refresh data</button>
       </div>
 
       {props.err && <p style={{ color: '#fca5a5' }} role="alert">{props.err}</p>}

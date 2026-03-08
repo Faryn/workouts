@@ -106,7 +106,7 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
     return m
   }, [exercises])
 
-  const { clearDraft } = useSessionDraft(
+  useSessionDraft(
     athleteId,
     { templateId, scheduledId, restSeconds: rest.restSeconds },
     draft => {
@@ -169,7 +169,6 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
           onScheduledId={setScheduledId}
           onStartFromTemplate={() => void startFromTemplate()}
           onStartFromScheduled={() => void startFromScheduled()}
-          onClearDraft={clearDraft}
           onResume={() => void loadAll()}
           err={err}
         />

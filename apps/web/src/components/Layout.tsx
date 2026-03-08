@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 
 type AthleteLite = { id: string; email: string; name?: string | null }
 
@@ -17,11 +18,47 @@ export function Layout({
   selectedAthleteId: string | null
   onSelectAthlete: (id: string) => void
 }) {
+  const location = useLocation()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const selectedAthlete = athleteOptions.find(a => a.id === selectedAthleteId)
+
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [location.pathname])
+
+  const currentSectionLabel = useMemo(() => {
+    if (me.role === 'admin') return 'Users'
+    if (location.pathname.startsWith('/sessions')) return 'Train'
+    if (location.pathname.startsWith('/templates')) return 'Programs'
+    return 'Dashboard'
+  }, [location.pathname, me.role])
 
   return (
     <div className="app-shell">
-      <aside className="app-sidebar">
+      <header className="mobile-topbar">
+        <div>
+          <div className="mobile-topbar-kicker">Workout app</div>
+          <strong>{currentSectionLabel}</strong>
+        </div>
+        <button
+          type="button"
+          className="ghost mobile-nav-toggle"
+          aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'}
+          aria-expanded={mobileNavOpen}
+          onClick={() => setMobileNavOpen(open => !open)}
+        >
+          <span className="button-icon">☰</span>
+          Menu
+        </button>
+      </header>
+
+      <div
+        className={`mobile-nav-backdrop${mobileNavOpen ? ' open' : ''}`}
+        onClick={() => setMobileNavOpen(false)}
+        aria-hidden={!mobileNavOpen}
+      />
+
+      <aside className={`app-sidebar${mobileNavOpen ? ' mobile-open' : ''}`}>
         <div className="brand-block">
           <div className="brand-eyebrow">Workout app</div>
           <div className="brand-title">Stronger, simpler coaching</div>
