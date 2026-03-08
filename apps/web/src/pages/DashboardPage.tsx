@@ -126,7 +126,9 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
 
   const today = iso(new Date())
   const todaysPlanned = calendarItems.find(i => i.kind === 'strength' && i.status === 'planned' && i.date === today)
-  const upcomingStrength = calendarItems.filter(i => i.kind === 'strength').slice(0, 5)
+  const upcomingStrength = calendarItems
+    .filter((i): i is Extract<CalendarItem, { kind: 'strength' }> => i.kind === 'strength' && i.date >= today)
+    .slice(0, 5)
   const completedCount = calendarItems.filter(i => i.kind === 'strength' && i.status === 'completed').length
   const plannedCount = calendarItems.filter(i => i.kind === 'strength' && i.status === 'planned').length
   const selectedStrength = items.filter(i => i.date === selectedDate).sort((a, b) => a.date.localeCompare(b.date))
