@@ -41,6 +41,9 @@ export function InProgressSession(props: {
   setDrafts: Record<string, SetDraft>
   activeSetKey: string | null
   sessionNotes: string
+  autosaveStateLabel: string
+  autosaveStateClassName: string
+  autosaveMeta?: string
   onChangeDraft: (key: string, draft: SetDraft) => void
   onChangeNotes: (notes: string) => void
   onDone: (loggedExerciseId: string, setNumber: number) => void
@@ -99,7 +102,17 @@ export function InProgressSession(props: {
 
   return (
     <div className="card">
-      <h3>Workout in progress</h3>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+        <div>
+          <h3 style={{ marginBottom: 6 }}>Workout in progress</h3>
+          <div className="small">Keep moving. Your latest changes save automatically.</div>
+        </div>
+        <div className="train-status-indicator">
+          <span className={props.autosaveStateClassName}>{props.autosaveStateLabel}</span>
+          {props.autosaveMeta && <div className="small" style={{ textAlign: 'right', marginTop: 6 }}>{props.autosaveMeta}</div>}
+        </div>
+      </div>
+
       <div className="session-progress">
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div>

@@ -15,8 +15,8 @@ function autosaveLabel(state: 'idle' | 'saving' | 'ok' | 'error') {
   switch (state) {
     case 'saving': return 'Saving…'
     case 'ok': return 'Saved'
-    case 'error': return 'Retrying'
-    default: return 'Idle'
+    case 'error': return 'Sync issue'
+    default: return 'Autosave on'
   }
 }
 
@@ -27,6 +27,15 @@ function autosaveBadgeClass(state: 'idle' | 'saving' | 'ok' | 'error') {
     case 'error': return 'status-badge status-skipped'
     default: return 'status-badge status-planned'
   }
+}
+
+function autosaveMeta(session: { last_saved_at?: string | null; version?: number } | null) {
+  if (!session) return undefined
+  const parts: string[] = []
+  if (session.last_saved_at) parts.push(`Last saved ${new Date(session.last_saved_at).toLocaleTimeString()}`)
+  else parts.push('Not saved yet')
+  if (session.version) parts.push(`v${session.version}`)
+  return parts.join(' · ')
 }
 
 export function SessionsPage({ token, athleteId }: { token: string; athleteId: string }) {
@@ -148,58 +157,52 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
         </div>
       )}
 
-      <SessionStarter
-        templates={templates}
-        scheduledItems={scheduledItems}
-        templateId={templateId}
-        scheduledId={scheduledId}
-        templateNameById={templateNameById}
-        hasActiveSession={hasActiveSession}
-        onTemplateId={setTemplateId}
-        onScheduledId={setScheduledId}
-        onStartFromTemplate={() => void startFromTemplate()}
-        onStartFromScheduled={() => void startFromScheduled()}
-        onClearDraft={clearDraft}
-        onResume={() => void loadAll()}
-        err={err}
-      />
+      {!session && (
+        <SessionStarter
+          templates={templates}
+          scheduledItems={scheduledItems}
+          templateId={templateId}
+          scheduledId={scheduledId}
+          templateNameById={templateNameById}
+          hasActiveSession={hasActiveSession}
+          onTemplateId={setTemplateId}
+          onScheduledId={setScheduledId}
+          onStartFromTemplate={() => void startFromTemplate()}
+          onStartFromScheduled={() => void startFromScheduled()}
+          onClearDraft={clearDraft}
+          onResume={() => void loadAll()}
+          err={err}
+        />
+      )}
 
       {session && (
-        <>
-          <div className="card">
-            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="small">
-                {session.last_saved_at ? `Last saved ${new Date(session.last_saved_at).toLocaleTimeString()}` : 'Not saved yet'}
-                {session.version ? ` · v${session.version}` : ''}
-              </div>
-              <span className={autosaveBadgeClass(autosaveState)}>{autosaveLabel(autosaveState)}</span>
-            </div>
-          </div>
-          <InProgressSession
-            session={session}
-            exerciseNameById={exerciseNameById}
-            setDrafts={setDrafts}
-            activeSetKey={activeSetKey}
-            sessionNotes={sessionNotes}
-            onChangeDraft={(k, draft) => setDraftValues(prev => ({ ...prev, [k]: draft }))}
-            onChangeNotes={setSessionNotes}
-            onDone={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'done', true, true)}
-            onSkip={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'skipped', false, true)}
-            onSelectSet={setActiveSetKey}
-            onFinish={() => void finish()}
-            restTimer={
-              <RestTimer
-                restSeconds={rest.restSeconds}
-                restRemaining={rest.restRemaining}
-                restRunning={rest.restRunning}
-                onSetSeconds={rest.applyDefault}
-                onStart={rest.start}
-                onRestart={rest.restart}
-                onPause={rest.pause}
-              />
-            }
-          />
-        </>
+        <InProgressSession
+          session={session}
+          exerciseNameById={exerciseNameById}
+          setDrafts={setDrafts}
+          activeSetKey={activeSetKey}
+          sessionNotes={sessionNotes}
+          autosaveStateLabel={autosaveLabel(autosaveState)}
+          autosaveStateClassName={autosaveBadgeClass(autosaveState)}
+          autosaveMeta={autosaveMeta(session)}
+          onChangeDraft={(k, draft) => setDraftValues(prev => ({ ...prev, [k]: draft }))}
+          onChangeNotes={setSessionNotes}
+          onDone={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'done', true, true)}
+          onSkip={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'skipped', false, true)}
+          onSelectSet={setActiveSetKey}
+          onFinish={() => void finish()}
+          restTimer={
+            <RestTimer
+              restSeconds={rest.restSeconds}
+              restRemaining={rest.restRemaining}
+              restRunning={rest.restRunning}
+              onSetSeconds={rest.applyDefault}
+              onStart={rest.start}
+              onRestart={rest.restart}
+              onPause={rest.pause}
+            />
+          }
+        />
       )}
 
       <SessionHistoryPanel
