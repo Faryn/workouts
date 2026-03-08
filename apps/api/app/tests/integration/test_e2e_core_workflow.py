@@ -46,8 +46,9 @@ def test_trainer_to_athlete_workflow_with_export(client, seeded_user, seeded_tra
     # Athlete starts session from schedule and logs one set
     started = client.post('/v1/sessions/start', json={'scheduled_workout_id': scheduled_id}, headers=athlete_headers)
     assert started.status_code == 200
-    session_id = started.json()['id']
-    logged_exercise_id = started.json()['logged_exercises'][0]['id']
+    started_body = started.json()
+    session_id = started_body['id']
+    logged_exercise_id = started_body['logged_exercises'][0]['id']
 
     logged = client.post(f'/v1/sessions/{session_id}/sets', json={
         'logged_exercise_id': logged_exercise_id,
@@ -55,10 +56,11 @@ def test_trainer_to_athlete_workflow_with_export(client, seeded_user, seeded_tra
         'actual_weight': 82.5,
         'actual_reps': 5,
         'status': 'done',
+        'session_version': started_body['version'],
     }, headers=athlete_headers)
     assert logged.status_code == 200
 
-    finished = client.post(f'/v1/sessions/{session_id}/finish', headers=athlete_headers)
+    finished = client.post(f'/v1/sessions/{session_id}/finish', json={'session_version': logged.json()['session_version']}, headers=athlete_headers)
     assert finished.status_code == 200
     assert finished.json()['status'] == 'completed'
 

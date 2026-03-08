@@ -59,9 +59,10 @@ def test_sessions_history_and_detail(client, seeded_user, db_session):
 
     started = client.post('/v1/sessions/start', json={'template_id': tpl['id']}, headers=headers)
     assert started.status_code == 200
-    sid = started.json()['id']
+    started_body = started.json()
+    sid = started_body['id']
 
-    done = client.post(f'/v1/sessions/{sid}/finish', headers=headers)
+    done = client.post(f'/v1/sessions/{sid}/finish', json={'session_version': started_body['version']}, headers=headers)
     assert done.status_code == 200
 
     listed = client.get(f'/v1/sessions/?athlete_id={seeded_user.id}', headers=headers)
@@ -93,14 +94,15 @@ def test_exports_csv_endpoints(client, seeded_user, db_session):
     started = client.post('/v1/sessions/start', json={'template_id': tpl['id']}, headers=headers).json()
     sid = started['id']
     le = started['logged_exercises'][0]['id']
-    client.post(f'/v1/sessions/{sid}/sets', json={
+    logged = client.post(f'/v1/sessions/{sid}/sets', json={
         'logged_exercise_id': le,
         'set_number': 1,
         'actual_weight': 125.0,
         'actual_reps': 3,
         'status': 'done',
+        'session_version': started['version'],
     }, headers=headers)
-    client.post(f'/v1/sessions/{sid}/finish', headers=headers)
+    client.post(f'/v1/sessions/{sid}/finish', json={'session_version': logged.json()['session_version']}, headers=headers)
 
     cardio = CardioSession(athlete_id=seeded_user.id, date=date(2026, 3, 10), type='walking', duration_seconds=1200, distance=2.0)
     db_session.add(cardio)

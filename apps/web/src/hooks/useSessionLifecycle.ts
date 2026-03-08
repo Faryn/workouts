@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import {
   api,
@@ -8,6 +8,7 @@ import {
   type SessionHistoryItem,
   type Template,
 } from '../lib/api'
+import { ApiError } from '../lib/api/client'
 import { errorMessage } from '../lib/errors'
 
 export type SetDraft = {
@@ -18,6 +19,14 @@ export type SetDraft = {
 
 function setKey(loggedExerciseId: string, setNumber: number) {
   return `${loggedExerciseId}:${setNumber}`
+}
+
+type SessionBackup = {
+  sessionId: string
+  draftValues: Record<string, SetDraft>
+  activeSetKey: string | null
+  notes: string
+  savedAt: string
 }
 
 export function useSessionLifecycle(params: {
@@ -60,8 +69,35 @@ export function useSessionLifecycle(params: {
   const [activeSetKey, setActiveSetKey] = useState<string | null>(null)
   const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'ok' | 'error'>('idle')
   const [historyDetails, setHistoryDetails] = useState<Record<string, SessionDetail | null>>({})
+  const [sessionNotes, setSessionNotes] = useState('')
 
-  function initializeSetDraftsFromSession(s: SessionDetail | null) {
+  const backupKey = useMemo(() => `active-session-backup:${athleteId}`, [athleteId])
+  const sessionRef = useRef<SessionDetail | null>(null)
+  const notesRef = useRef('')
+
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
+
+  useEffect(() => {
+    notesRef.current = sessionNotes
+  }, [sessionNotes])
+
+  function readBackup(): SessionBackup | null {
+    try {
+      const raw = localStorage.getItem(backupKey)
+      if (!raw) return null
+      return JSON.parse(raw) as SessionBackup
+    } catch {
+      return null
+    }
+  }
+
+  function clearBackup() {
+    localStorage.removeItem(backupKey)
+  }
+
+  function initializeSetDraftsFromSession(s: SessionDetail | null, opts?: { preserveLocalDrafts?: boolean }) {
     if (!s) return
     const next: Record<string, SetDraft> = {}
     let firstKey: string | null = null
@@ -76,8 +112,19 @@ export function useSessionLifecycle(params: {
         }
       }
     }
+
+    const backup = opts?.preserveLocalDrafts ? readBackup() : null
+    if (backup && backup.sessionId === s.id) {
+      setDraftValues({ ...next, ...backup.draftValues })
+      setActiveSetKey(backup.activeSetKey ?? firstKey)
+      setSessionNotes(backup.notes ?? (s.notes ?? ''))
+      onNotice('Recovered local draft for in-progress session.')
+      return
+    }
+
     setDraftValues(next)
     setActiveSetKey(firstKey)
+    setSessionNotes(s.notes ?? '')
   }
 
   async function loadAll() {
@@ -92,9 +139,9 @@ export function useSessionLifecycle(params: {
       setHistory(h)
       setTemplates(t)
       setExercises(ex)
-      if (!session && latest) {
+      if (latest) {
         setSession(latest)
-        initializeSetDraftsFromSession(latest)
+        initializeSetDraftsFromSession(latest, { preserveLocalDrafts: true })
       }
       const planned = s.filter(x => x.status === 'planned')
       setScheduledItems(planned)
@@ -105,23 +152,86 @@ export function useSessionLifecycle(params: {
     }
   }
 
+  async function autosaveCurrent(reason: 'interval' | 'visibility' | 'pagehide' | 'notes') {
+    const active = sessionRef.current
+    if (!active || active.status !== 'in_progress') return
+    try {
+      setAutosaveState('saving')
+      const saved = await api.autosaveSession(token, active.id, active.version, notesRef.current)
+      setAutosaveState('ok')
+      setSession(prev => prev ? {
+        ...prev,
+        last_saved_at: saved.last_saved_at ?? prev.last_saved_at,
+        updated_at: saved.updated_at ?? prev.updated_at,
+        notes: saved.notes ?? prev.notes,
+        version: saved.version ?? prev.version,
+      } : prev)
+      if (reason === 'visibility' || reason === 'pagehide') onNotice('Session progress saved.')
+    } catch (e) {
+      setAutosaveState('error')
+      if (e instanceof ApiError && e.code === 'session_conflict' && active.id) {
+        const latest = await api.getSession(token, active.id).catch(() => null)
+        if (latest) {
+          setSession(latest)
+          initializeSetDraftsFromSession(latest, { preserveLocalDrafts: true })
+        }
+        onNotice('Session changed elsewhere. Reloaded latest version.')
+      }
+    }
+  }
+
   useEffect(() => {
     if (!session || session.status !== 'in_progress') return
 
     const id = window.setInterval(() => {
-      setAutosaveState('saving')
-      void api.autosaveSession(token, session.id)
-        .then((saved) => {
-          setAutosaveState('ok')
-          setSession(prev => (prev ? { ...prev, last_saved_at: saved.last_saved_at ?? prev.last_saved_at, notes: saved.notes ?? prev.notes } : prev))
-        })
-        .catch(() => {
-          setAutosaveState('error')
-        })
+      void autosaveCurrent('interval')
     }, 15000)
 
-    return () => window.clearInterval(id)
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') void autosaveCurrent('visibility')
+    }
+    const onPageHide = () => {
+      void autosaveCurrent('pagehide')
+    }
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', onPageHide)
+    window.addEventListener('beforeunload', onBeforeUnload)
+
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', onPageHide)
+      window.removeEventListener('beforeunload', onBeforeUnload)
+    }
   }, [session, token])
+
+  useEffect(() => {
+    if (!session || session.status !== 'in_progress') {
+      clearBackup()
+      return
+    }
+    const payload: SessionBackup = {
+      sessionId: session.id,
+      draftValues,
+      activeSetKey,
+      notes: sessionNotes,
+      savedAt: new Date().toISOString(),
+    }
+    localStorage.setItem(backupKey, JSON.stringify(payload))
+  }, [backupKey, draftValues, activeSetKey, session, sessionNotes])
+
+  useEffect(() => {
+    if (!session || session.status !== 'in_progress') return
+    const id = window.setTimeout(() => {
+      void autosaveCurrent('notes')
+    }, 1200)
+    return () => window.clearTimeout(id)
+  }, [sessionNotes])
 
   async function startFromTemplate() {
     setErr(null)
@@ -129,7 +239,13 @@ export function useSessionLifecycle(params: {
       const s = await api.startSession(token, { template_id: templateId })
       setSession(s)
       initializeSetDraftsFromSession(s)
+      clearBackup()
     } catch (e: unknown) {
+      if (e instanceof ApiError && e.code === 'session_already_in_progress') {
+        onNotice('You already have an in-progress session. Resuming it instead.')
+        await loadAll()
+        return
+      }
       setErr(errorMessage(e))
     }
   }
@@ -140,7 +256,13 @@ export function useSessionLifecycle(params: {
       const s = await api.startSession(token, { scheduled_workout_id: scheduledId })
       setSession(s)
       initializeSetDraftsFromSession(s)
+      clearBackup()
     } catch (e: unknown) {
+      if (e instanceof ApiError && e.code === 'session_already_in_progress') {
+        onNotice('You already have an in-progress session. Resuming it instead.')
+        await loadAll()
+        return
+      }
       setErr(errorMessage(e))
     }
   }
@@ -166,14 +288,30 @@ export function useSessionLifecycle(params: {
     const actualReps = draft.actual_reps === '' ? null : Number(draft.actual_reps)
 
     try {
-      await api.logSet(token, session.id, {
+      const logged = await api.logSet(token, session.id, {
         logged_exercise_id: loggedExerciseId,
         set_number: setNumber,
         actual_weight: actualWeight,
         actual_reps: actualReps,
         status,
+        session_version: session.version,
       })
-    } catch {
+      setSession(prev => prev ? {
+        ...prev,
+        version: logged.session_version ?? prev.version,
+        last_saved_at: logged.last_saved_at ?? prev.last_saved_at,
+      } : prev)
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'session_conflict') {
+        const latest = await api.getSession(token, session.id).catch(() => null)
+        if (latest) {
+          setSession(latest)
+          initializeSetDraftsFromSession(latest, { preserveLocalDrafts: true })
+        }
+        onNotice('Session changed elsewhere. Reloaded latest version before continuing.')
+        return
+      }
+
       enqueuePendingLog({
         session_id: session.id,
         logged_exercise_id: loggedExerciseId,
@@ -188,19 +326,34 @@ export function useSessionLifecycle(params: {
     const nextKey = goNext ? nextSetKey(loggedExerciseId, setNumber) : null
     const refreshed = await api.getSession(token, session.id).catch(() => session)
     setSession(refreshed)
-    initializeSetDraftsFromSession(refreshed)
+    initializeSetDraftsFromSession(refreshed, { preserveLocalDrafts: true })
     if (nextKey) setActiveSetKey(nextKey)
     if (triggerCooldown) onRestCooldown()
   }
 
   async function finish() {
     if (!session) return
-    const done = await api.finishSession(token, session.id)
-    onNotice(`Session ${done.status}, scheduled=${done.scheduled_workout_status ?? 'n/a'}`)
-    setSession(null)
-    setDraftValues({})
-    setActiveSetKey(null)
-    await loadAll()
+    try {
+      const done = await api.finishSession(token, session.id, session.version)
+      onNotice(`Session ${done.status}, scheduled=${done.scheduled_workout_status ?? 'n/a'}`)
+      setSession(null)
+      setSessionNotes('')
+      setDraftValues({})
+      setActiveSetKey(null)
+      clearBackup()
+      await loadAll()
+    } catch (e) {
+      if (e instanceof ApiError && e.code === 'session_conflict') {
+        const latest = await api.getSession(token, session.id).catch(() => null)
+        if (latest) {
+          setSession(latest)
+          initializeSetDraftsFromSession(latest, { preserveLocalDrafts: true })
+        }
+        onNotice('Session changed elsewhere. Review latest state before finishing.')
+        return
+      }
+      setErr(errorMessage(e))
+    }
   }
 
   async function toggleHistoryDetails(sessionId: string) {
@@ -227,6 +380,9 @@ export function useSessionLifecycle(params: {
     setActiveSetKey,
     autosaveState,
     historyDetails,
+    sessionNotes,
+    setSessionNotes,
+    hasActiveSession: !!session,
     loadAll,
     startFromTemplate,
     startFromScheduled,

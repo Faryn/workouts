@@ -39,10 +39,11 @@
 - `GET /v1/sessions/?athlete_id=...` (session history list)
 - `GET /v1/sessions/{session_id}` (session detail)
 - `GET /v1/sessions/in-progress?athlete_id=...` (latest resumable in-progress session)
-- `POST /v1/sessions/start` (from scheduled workout or template)
-- `POST /v1/sessions/{session_id}/sets` (set actual logging while keeping planned values)
-- `POST /v1/sessions/{session_id}/autosave` (updates `last_saved_at` and optional notes for reliability/resume)
-- `POST /v1/sessions/{session_id}/finish` (marks session complete and linked scheduled workout complete)
+- `POST /v1/sessions/start` (from scheduled workout or template; reuses matching in-progress session instead of duplicating)
+- `POST /v1/sessions/{session_id}/sets` (set actual logging while keeping planned values; requires `session_version` for stale-write protection)
+- `POST /v1/sessions/{session_id}/autosave` (updates `last_saved_at` and optional notes for reliability/resume; requires `session_version`)
+- `POST /v1/sessions/{session_id}/finish` (marks session complete and linked scheduled workout complete; requires `session_version`)
+- Session payloads include `version` + `updated_at` for optimistic concurrency handling.
 
 ## Cardio + Stats
 - `GET /v1/cardio-sessions/?athlete_id=...`

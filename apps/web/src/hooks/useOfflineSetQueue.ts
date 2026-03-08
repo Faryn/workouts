@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react'
 
 import { api } from '../lib/api'
+import { ApiError } from '../lib/api/client'
 
 type PendingSetLog = {
   session_id: string
@@ -49,14 +50,19 @@ export function useOfflineSetQueue(params: {
     const remaining: PendingSetLog[] = []
     for (const p of pending) {
       try {
+        const latest = await api.getSession(token, p.session_id)
         await api.logSet(token, p.session_id, {
           logged_exercise_id: p.logged_exercise_id,
           set_number: p.set_number,
           actual_weight: p.actual_weight,
           actual_reps: p.actual_reps,
           status: p.status,
+          session_version: latest.version,
         })
-      } catch {
+      } catch (err) {
+        if (err instanceof ApiError && (err.code === 'session_not_in_progress' || err.code === 'session_not_found')) {
+          continue
+        }
         remaining.push(p)
       }
     }

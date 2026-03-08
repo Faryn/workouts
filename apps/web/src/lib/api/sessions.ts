@@ -16,7 +16,8 @@ export const sessionsApi = {
     req<SessionDetail>('/v1/sessions/start', { method: 'POST', body: JSON.stringify(payload) }, token),
   logSet: (token: string, sessionId: string, payload: LogSetPayload) =>
     req<LogSetResponse>(`/v1/sessions/${sessionId}/sets`, { method: 'POST', body: JSON.stringify(payload) }, token),
-  autosaveSession: (token: string, sessionId: string, notes?: string) =>
-    req<SessionAutosaveResponse>(`/v1/sessions/${sessionId}/autosave`, { method: 'POST', body: JSON.stringify({ notes }) }, token),
-  finishSession: (token: string, sessionId: string) => req<FinishSessionResponse>(`/v1/sessions/${sessionId}/finish`, { method: 'POST' }, token),
+  autosaveSession: (token: string, sessionId: string, sessionVersion: number, notes?: string) =>
+    req<SessionAutosaveResponse>(`/v1/sessions/${sessionId}/autosave`, { method: 'POST', body: JSON.stringify({ notes, session_version: sessionVersion }) }, token),
+  finishSession: (token: string, sessionId: string, sessionVersion: number) =>
+    req<FinishSessionResponse>(`/v1/sessions/${sessionId}/finish`, { method: 'POST', body: JSON.stringify({ session_version: sessionVersion }) }, token),
 }

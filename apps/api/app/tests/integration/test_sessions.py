@@ -37,10 +37,60 @@ def test_session_start_from_scheduled_copies_planned_sets(client, seeded_user, d
     assert start.status_code == 200
     body = start.json()
     assert body['status'] == 'in_progress'
+    assert body['version'] == 1
     assert len(body['logged_exercises']) == 1
     assert len(body['logged_exercises'][0]['sets']) == 3
     assert body['logged_exercises'][0]['sets'][0]['planned_reps'] == 5
     assert body['logged_exercises'][0]['sets'][0]['planned_weight'] == 80.0
+
+
+def test_duplicate_session_start_reuses_existing_for_same_scheduled_workout(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+    from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
+    from app.models.schedule import ScheduledWorkout
+
+    ex = Exercise(name='Squat', type='strength', owner_scope='global')
+    db_session.add(ex); db_session.commit(); db_session.refresh(ex)
+
+    tpl = WorkoutTemplate(owner_id=seeded_user.id, name='Lower A')
+    db_session.add(tpl); db_session.commit(); db_session.refresh(tpl)
+    db_session.add(WorkoutTemplateExercise(template_id=tpl.id, exercise_id=ex.id, sort_order=1, planned_sets=1, planned_reps=5, planned_weight=100.0))
+    db_session.commit()
+
+    sched = ScheduledWorkout(athlete_id=seeded_user.id, template_id=tpl.id, date=date(2026, 3, 5), status='planned', source='api')
+    db_session.add(sched); db_session.commit(); db_session.refresh(sched)
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    first = client.post('/v1/sessions/start', json={'scheduled_workout_id': sched.id}, headers=headers)
+    second = client.post('/v1/sessions/start', json={'scheduled_workout_id': sched.id}, headers=headers)
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()['id'] == first.json()['id']
+
+
+def test_duplicate_session_start_blocks_new_session_when_other_in_progress_exists(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+    from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
+
+    ex1 = Exercise(name='Squat', type='strength', owner_scope='global')
+    ex2 = Exercise(name='Bench', type='strength', owner_scope='global')
+    db_session.add_all([ex1, ex2]); db_session.commit(); db_session.refresh(ex1); db_session.refresh(ex2)
+
+    tpl1 = WorkoutTemplate(owner_id=seeded_user.id, name='Lower A')
+    tpl2 = WorkoutTemplate(owner_id=seeded_user.id, name='Upper A')
+    db_session.add_all([tpl1, tpl2]); db_session.commit(); db_session.refresh(tpl1); db_session.refresh(tpl2)
+    db_session.add_all([
+        WorkoutTemplateExercise(template_id=tpl1.id, exercise_id=ex1.id, sort_order=1, planned_sets=1, planned_reps=5, planned_weight=100.0),
+        WorkoutTemplateExercise(template_id=tpl2.id, exercise_id=ex2.id, sort_order=1, planned_sets=1, planned_reps=5, planned_weight=80.0),
+    ])
+    db_session.commit()
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    first = client.post('/v1/sessions/start', json={'template_id': tpl1.id}, headers=headers)
+    blocked = client.post('/v1/sessions/start', json={'template_id': tpl2.id}, headers=headers)
+    assert first.status_code == 200
+    assert blocked.status_code == 409
+    assert blocked.json()['error']['code'] == 'session_already_in_progress'
 
 
 def test_session_log_set_keeps_planned_and_stores_actual(client, seeded_user, db_session):
@@ -59,15 +109,17 @@ def test_session_log_set_keeps_planned_and_stores_actual(client, seeded_user, db
     headers = _auth(client, seeded_user.email, 'secret123')
     start = client.post('/v1/sessions/start', json={'template_id': tpl.id}, headers=headers)
     assert start.status_code == 200
-    session_id = start.json()['id']
-    logged_exercise_id = start.json()['logged_exercises'][0]['id']
+    start_body = start.json()
+    session_id = start_body['id']
+    logged_exercise_id = start_body['logged_exercises'][0]['id']
 
     log_set = client.post(f'/v1/sessions/{session_id}/sets', json={
         'logged_exercise_id': logged_exercise_id,
         'set_number': 1,
         'actual_weight': 102.5,
         'actual_reps': 4,
-        'status': 'done'
+        'status': 'done',
+        'session_version': start_body['version'],
     }, headers=headers)
     assert log_set.status_code == 200
     s = log_set.json()
@@ -75,6 +127,65 @@ def test_session_log_set_keeps_planned_and_stores_actual(client, seeded_user, db
     assert s['planned_reps'] == 5
     assert s['actual_weight'] == 102.5
     assert s['actual_reps'] == 4
+    assert s['session_version'] == 2
+
+
+def test_session_rejects_stale_write_versions(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+    from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
+
+    ex = Exercise(name='Press', type='strength', owner_scope='global')
+    db_session.add(ex); db_session.commit(); db_session.refresh(ex)
+    tpl = WorkoutTemplate(owner_id=seeded_user.id, name='Press Day')
+    db_session.add(tpl); db_session.commit(); db_session.refresh(tpl)
+    db_session.add(WorkoutTemplateExercise(template_id=tpl.id, exercise_id=ex.id, sort_order=1, planned_sets=1, planned_reps=5, planned_weight=40.0))
+    db_session.commit()
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    start = client.post('/v1/sessions/start', json={'template_id': tpl.id}, headers=headers).json()
+    session_id = start['id']
+    logged_exercise_id = start['logged_exercises'][0]['id']
+
+    ok = client.post(f'/v1/sessions/{session_id}/sets', json={
+        'logged_exercise_id': logged_exercise_id,
+        'set_number': 1,
+        'actual_weight': 42.5,
+        'actual_reps': 5,
+        'status': 'done',
+        'session_version': start['version'],
+    }, headers=headers)
+    assert ok.status_code == 200
+
+    stale = client.post(f'/v1/sessions/{session_id}/autosave', json={'notes': 'late write', 'session_version': start['version']}, headers=headers)
+    assert stale.status_code == 409
+    assert stale.json()['error']['code'] == 'session_conflict'
+
+
+def test_session_invalid_values_are_rejected(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+    from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
+
+    ex = Exercise(name='Row', type='strength', owner_scope='global')
+    db_session.add(ex); db_session.commit(); db_session.refresh(ex)
+    tpl = WorkoutTemplate(owner_id=seeded_user.id, name='Row Day')
+    db_session.add(tpl); db_session.commit(); db_session.refresh(tpl)
+    db_session.add(WorkoutTemplateExercise(template_id=tpl.id, exercise_id=ex.id, sort_order=1, planned_sets=1, planned_reps=8, planned_weight=50.0))
+    db_session.commit()
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    start = client.post('/v1/sessions/start', json={'template_id': tpl.id}, headers=headers).json()
+    session_id = start['id']
+    logged_exercise_id = start['logged_exercises'][0]['id']
+
+    bad = client.post(f'/v1/sessions/{session_id}/sets', json={
+        'logged_exercise_id': logged_exercise_id,
+        'set_number': 0,
+        'actual_weight': -1,
+        'actual_reps': -2,
+        'status': 'done',
+        'session_version': start['version'],
+    }, headers=headers)
+    assert bad.status_code == 422
 
 
 def test_template_changes_do_not_mutate_existing_session_planned_values(client, seeded_user, db_session):
@@ -100,8 +211,9 @@ def test_template_changes_do_not_mutate_existing_session_planned_values(client, 
 
     started = client.post('/v1/sessions/start', json={'template_id': tid}, headers=headers)
     assert started.status_code == 200
-    session_id = started.json()['id']
-    logged_exercise_id = started.json()['logged_exercises'][0]['id']
+    started_body = started.json()
+    session_id = started_body['id']
+    logged_exercise_id = started_body['logged_exercises'][0]['id']
 
     patch = client.patch(f'/v1/templates/{tid}', json={
         'exercises': [
@@ -121,6 +233,7 @@ def test_template_changes_do_not_mutate_existing_session_planned_values(client, 
         'actual_weight': 52.5,
         'actual_reps': 5,
         'status': 'done',
+        'session_version': started_body['version'],
     }, headers=headers)
     assert set_log.status_code == 200
     payload = set_log.json()
@@ -158,10 +271,11 @@ def test_session_autosave_and_recovery_keeps_latest_progress(client, seeded_user
         'actual_weight': 72.5,
         'actual_reps': 5,
         'status': 'done',
+        'session_version': body['version'],
     }, headers=headers)
     assert log_set.status_code == 200
 
-    autosave = client.post(f'/v1/sessions/{session_id}/autosave', json={'notes': 'Felt good'}, headers=headers)
+    autosave = client.post(f'/v1/sessions/{session_id}/autosave', json={'notes': 'Felt good', 'session_version': log_set.json()['session_version']}, headers=headers)
     assert autosave.status_code == 200
     assert autosave.json()['notes'] == 'Felt good'
 
@@ -171,6 +285,7 @@ def test_session_autosave_and_recovery_keeps_latest_progress(client, seeded_user
     assert resumed_body['id'] == session_id
     assert resumed_body['notes'] == 'Felt good'
     assert resumed_body['last_saved_at'] is not None
+    assert resumed_body['version'] >= 3
 
     detailed = client.get(f'/v1/sessions/{session_id}', headers=headers)
     assert detailed.status_code == 200
@@ -199,8 +314,9 @@ def test_session_finish_marks_scheduled_completed(client, seeded_user, db_sessio
     headers = _auth(client, seeded_user.email, 'secret123')
     start = client.post('/v1/sessions/start', json={'scheduled_workout_id': sched.id}, headers=headers)
     session_id = start.json()['id']
+    version = start.json()['version']
 
-    done = client.post(f'/v1/sessions/{session_id}/finish', headers=headers)
+    done = client.post(f'/v1/sessions/{session_id}/finish', json={'session_version': version}, headers=headers)
     assert done.status_code == 200
     assert done.json()['status'] == 'completed'
     assert done.json()['scheduled_workout_status'] == 'completed'

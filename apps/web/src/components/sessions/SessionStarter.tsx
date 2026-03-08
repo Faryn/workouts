@@ -7,6 +7,7 @@ export function SessionStarter(props: {
   templateId: string
   scheduledId: string
   templateNameById: Record<string, string>
+  hasActiveSession: boolean
   onTemplateId: (v: string) => void
   onScheduledId: (v: string) => void
   onStartFromTemplate: () => void
@@ -18,6 +19,13 @@ export function SessionStarter(props: {
   return (
     <div className="card">
       <h2>Gym</h2>
+      {props.hasActiveSession && (
+        <div className="card" style={{ marginBottom: 10, borderColor: '#60a5fa' }}>
+          <strong>Resume in-progress workout</strong>
+          <p className="small" style={{ marginTop: 6 }}>You already have a live session. Resume that instead of starting a duplicate.</p>
+          <button className="primary" onClick={props.onResume}>Resume session</button>
+        </div>
+      )}
       <div className="row">
         <select value={props.templateId} onChange={e => props.onTemplateId(e.target.value)}>
           <option value="">Select template</option>
@@ -27,7 +35,7 @@ export function SessionStarter(props: {
             </option>
           ))}
         </select>
-        <button onClick={props.onStartFromTemplate} disabled={!props.templateId}>
+        <button onClick={props.onStartFromTemplate} disabled={!props.templateId || props.hasActiveSession}>
           Start
         </button>
       </div>
@@ -40,7 +48,7 @@ export function SessionStarter(props: {
             </option>
           ))}
         </select>
-        <button onClick={props.onStartFromScheduled} disabled={!props.scheduledId}>
+        <button onClick={props.onStartFromScheduled} disabled={!props.scheduledId || props.hasActiveSession}>
           Go
         </button>
       </div>
@@ -48,7 +56,7 @@ export function SessionStarter(props: {
       <div className="row" style={{ marginTop: 10 }}>
         <span className="small">Autosave on</span>
         <button onClick={props.onClearDraft}>Clear</button>
-        <button onClick={props.onResume}>Resume</button>
+        <button onClick={props.onResume}>Refresh / resume</button>
       </div>
 
       {props.err && <p style={{ color: '#fca5a5' }}>{props.err}</p>}

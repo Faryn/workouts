@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import Session
 
 from app.models.session import LoggedExercise, LoggedSet, WorkoutSession
@@ -35,6 +37,13 @@ def create_session(db: Session, athlete_id: str, scheduled_workout_id: str | Non
     db.commit()
     db.refresh(ws)
     return ws
+
+
+def touch_session(ws: WorkoutSession) -> None:
+    ws.version = (ws.version or 0) + 1
+    now = datetime.now(timezone.utc)
+    ws.last_saved_at = now
+    ws.updated_at = now
 
 
 def create_logged_exercise(

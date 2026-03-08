@@ -38,5 +38,7 @@ def serialize_session(db: Session, ws) -> dict:
         "started_at": ws.started_at.isoformat() if ws.started_at else None,
         "ended_at": ws.ended_at.isoformat() if ws.ended_at else None,
         "last_saved_at": ws.last_saved_at.isoformat() if ws.last_saved_at else None,
+        "updated_at": ws.updated_at.isoformat() if ws.updated_at else None,
+        "version": ws.version,
         "logged_exercises": out_ex,
     }

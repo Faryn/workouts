@@ -4,7 +4,14 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.core.db import get_db
 from app.models.user import User
-from app.schemas.session import LogSetPayload, LoggedSetOut, SessionAutosavePayload, SessionOut, SessionStartPayload
+from app.schemas.session import (
+    LogSetPayload,
+    LoggedSetOut,
+    SessionAutosavePayload,
+    SessionFinishPayload,
+    SessionOut,
+    SessionStartPayload,
+)
 from app.services import session_service
 
 router = APIRouter()
@@ -35,13 +42,12 @@ def get_session(session_id: str, db: Session = Depends(get_db), current_user: Us
 
 @router.post('/start', response_model=SessionOut)
 def start_session(payload: SessionStartPayload, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    data = session_service.start_session(db, current_user, payload.scheduled_workout_id, payload.template_id)
-    return data
+    return session_service.start_session(db, current_user, payload.scheduled_workout_id, payload.template_id)
 
 
 @router.post('/{session_id}/sets', response_model=LoggedSetOut)
 def upsert_set(session_id: str, payload: LogSetPayload, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    data = session_service.upsert_set(
+    return session_service.upsert_set(
         db,
         current_user,
         session_id=session_id,
@@ -51,8 +57,8 @@ def upsert_set(session_id: str, payload: LogSetPayload, db: Session = Depends(ge
         actual_reps=payload.actual_reps,
         status=payload.status,
         notes=payload.notes,
+        session_version=payload.session_version,
     )
-    return data
 
 
 @router.post('/{session_id}/autosave')
@@ -62,9 +68,14 @@ def autosave_session(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return session_service.autosave_session(db, current_user, session_id, notes=payload.notes)
+    return session_service.autosave_session(db, current_user, session_id, notes=payload.notes, session_version=payload.session_version)
 
 
 @router.post('/{session_id}/finish')
-def finish_session(session_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return session_service.finish_session(db, current_user, session_id)
+def finish_session(
+    session_id: str,
+    payload: SessionFinishPayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return session_service.finish_session(db, current_user, session_id, session_version=payload.session_version)

@@ -127,6 +127,8 @@ export type SessionDetail = {
   started_at?: string | null
   ended_at?: string | null
   last_saved_at?: string | null
+  updated_at?: string | null
+  version: number
   logged_exercises: LoggedExercise[]
 }
 
@@ -137,6 +139,7 @@ export type LogSetPayload = {
   actual_reps?: number | null
   status: 'done' | 'skipped'
   notes?: string
+  session_version: number
 }
 
 export type LogSetResponse = {
@@ -148,6 +151,8 @@ export type LogSetResponse = {
   actual_reps?: number | null
   status: 'done' | 'skipped'
   notes?: string | null
+  session_version?: number | null
+  last_saved_at?: string | null
 }
 
 export type SessionAutosaveResponse = {
@@ -155,10 +160,13 @@ export type SessionAutosaveResponse = {
   status: string
   notes?: string | null
   last_saved_at?: string | null
+  updated_at?: string | null
+  version?: number | null
 }
 
 export type FinishSessionResponse = {
   id: string
   status: string
   scheduled_workout_status?: string | null
+  version?: number | null
 }

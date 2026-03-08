@@ -36,7 +36,9 @@ export function InProgressSession(props: {
   exerciseNameById: Record<string, string>
   setDrafts: Record<string, SetDraft>
   activeSetKey: string | null
+  sessionNotes: string
   onChangeDraft: (key: string, draft: SetDraft) => void
+  onChangeNotes: (notes: string) => void
   onDone: (loggedExerciseId: string, setNumber: number) => void
   onSkip: (loggedExerciseId: string, setNumber: number) => void
   onSelectSet: (key: string) => void
@@ -142,6 +144,17 @@ export function InProgressSession(props: {
                   style={{ width: '100%' }}
                 />
               </div>
+            </div>
+
+            <div style={{ marginBottom: 8 }}>
+              <div className="small" style={{ marginBottom: 4 }}>Session notes</div>
+              <textarea
+                value={props.sessionNotes}
+                onChange={e => props.onChangeNotes(e.target.value)}
+                rows={3}
+                placeholder="How did this session feel?"
+                style={{ width: '100%' }}
+              />
             </div>
 
             <div className="row" style={{ gap: 10, marginBottom: 8 }}>

@@ -17,3 +17,11 @@
 
 ## Notes
 This structure keeps routers thin and makes service-layer unit testing easier.
+
+## Session reliability architecture
+The session flow now uses an optimistic concurrency pattern:
+- `workout_sessions.version` and `updated_at` are returned in session payloads.
+- Mutating endpoints (`sets`, `autosave`, `finish`) require the caller's `session_version`.
+- The service layer rejects stale writes with a structured `session_conflict` error.
+- The web app keeps a local active-session backup, resumes the latest in-progress session, and autosaves on interval plus lifecycle events (`visibilitychange`, `pagehide`).
+- Offline queued set writes refresh the latest session before replay so retries use the current session version.

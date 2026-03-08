@@ -50,6 +50,9 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
     setActiveSetKey,
     autosaveState,
     historyDetails,
+    sessionNotes,
+    setSessionNotes,
+    hasActiveSession,
     loadAll,
     startFromTemplate,
     startFromScheduled,
@@ -101,6 +104,7 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
         templateId={templateId}
         scheduledId={scheduledId}
         templateNameById={templateNameById}
+        hasActiveSession={hasActiveSession}
         onTemplateId={setTemplateId}
         onScheduledId={setScheduledId}
         onStartFromTemplate={() => void startFromTemplate()}
@@ -116,6 +120,7 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
             <p className="small" style={{ margin: 0 }}>
               Autosave: {autosaveState === 'saving' ? 'saving…' : autosaveState === 'ok' ? 'ok' : autosaveState === 'error' ? 'retrying' : 'idle'}
               {session.last_saved_at ? ` · last saved ${new Date(session.last_saved_at).toLocaleTimeString()}` : ''}
+              {session.version ? ` · v${session.version}` : ''}
             </p>
           </div>
           <InProgressSession
@@ -123,7 +128,9 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
             exerciseNameById={exerciseNameById}
             setDrafts={setDrafts}
             activeSetKey={activeSetKey}
+            sessionNotes={sessionNotes}
             onChangeDraft={(k, draft) => setDraftValues(prev => ({ ...prev, [k]: draft }))}
+            onChangeNotes={setSessionNotes}
             onDone={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'done', true, true)}
             onSkip={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'skipped', false, true)}
             onSelectSet={setActiveSetKey}

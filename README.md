@@ -11,6 +11,11 @@ Implemented slices include:
 - Scheduling (create/move/copy/skip/delete + recurring patterns)
 - Calendar feed (strength + cardio merged) and compact weekly calendar UI
 - Session flow (start, log sets, autosave, finish, history, latest in-progress)
+- Session reliability hardening:
+  - optimistic concurrency via `version` + `updated_at`
+  - stale-write protection on set logs / autosave / finish
+  - duplicate in-progress session protection
+  - resumable active session UX with local backup + autosave on visibility/page-hide
 - Cardio logging
 - Weights-over-time stats
 - CSV exports (sessions, exercise history, cardio)

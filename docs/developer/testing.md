@@ -15,7 +15,10 @@ This project follows TDD-oriented practice for implemented functionality:
 - Scheduled workout create/move/copy behavior
 - Scheduled workout write denied for other athlete IDs (athlete role)
 - Session start from schedule/template creates planned set snapshots
+- Duplicate in-progress session handling (reuse/block semantics)
 - Session set logging stores actuals without overwriting planned values
+- Session stale-write protection via session version checks
+- Session invalid value validation
 - Session finish marks linked scheduled workout completed
 - Trainer can access assigned athlete schedule
 - Admin user management endpoints (list/create/patch/reset-password) + non-admin forbidden checks
@@ -23,6 +26,7 @@ This project follows TDD-oriented practice for implemented functionality:
 - Trainer is forbidden from unassigned athlete schedule access (structured error shape)
 - Cardio create/list flow
 - Stats weights-over-time endpoint over completed session logs
+- Web E2E coverage for login/templates, route guards, trainer/athlete views, and core workflow navigation
 
 ## Test levels
 - **Unit tests:** pure business rules (to expand as services are added)
