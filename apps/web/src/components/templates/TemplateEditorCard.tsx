@@ -11,7 +11,6 @@ function fuzzyScore(query: string, candidate: string): number {
   if (c.startsWith(q)) return 700
   if (c.includes(q)) return 500
 
-  // lightweight subsequence scoring (fuzzy)
   let qi = 0
   let score = 0
   for (let i = 0; i < c.length && qi < q.length; i += 1) {
@@ -54,12 +53,27 @@ export function TemplateEditorCard(props: {
     props.onChange({ ...editing, exercises: next })
   }
 
+  function applyRestToAll(seconds: number) {
+    props.onChange({
+      ...editing,
+      exercises: editing.exercises.map(ex => ({ ...ex, rest_seconds: seconds })),
+    })
+  }
+
   return (
     <div className="card">
       <h3>Edit Template</h3>
       <div className="row" style={{ marginBottom: 8 }}>
         <input value={editing.name} onChange={e => props.onChange({ ...editing, name: e.target.value })} placeholder="Template name" />
         <input value={editing.notes} onChange={e => props.onChange({ ...editing, notes: e.target.value })} placeholder="Notes" />
+      </div>
+
+      <div className="row" style={{ marginBottom: 12 }}>
+        <span className="small">Quick rest defaults:</span>
+        <button type="button" onClick={() => applyRestToAll(60)}>60s all</button>
+        <button type="button" onClick={() => applyRestToAll(90)}>90s all</button>
+        <button type="button" onClick={() => applyRestToAll(120)}>120s all</button>
+        <button type="button" onClick={() => applyRestToAll(180)}>180s all</button>
       </div>
 
       <h4 style={{ marginBottom: 8 }}>Exercises</h4>

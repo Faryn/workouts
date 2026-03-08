@@ -61,6 +61,29 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
     await load()
   }
 
+  async function duplicateTemplate(id: string) {
+    const original = items.find(x => x.id === id)
+    if (!original) return
+    const exercises: TemplateExerciseInput[] = original.exercises
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((e, idx) => ({
+        exercise_id: e.exercise_id,
+        sort_order: idx + 1,
+        planned_sets: e.planned_sets,
+        planned_reps: e.planned_reps,
+        planned_weight: e.planned_weight ?? undefined,
+        rest_seconds: e.rest_seconds ?? undefined,
+        notes: e.notes ?? undefined,
+      }))
+    await api.createTemplate(token, {
+      name: `${original.name} copy`,
+      notes: original.notes ?? undefined,
+      exercises,
+    })
+    await load()
+  }
+
   async function saveEdit() {
     if (!editing) return
     setSaving(true)
@@ -114,6 +137,11 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
         onEdit={id => {
           const t = items.find(x => x.id === id)
           if (t) setEditing(toEditable(t))
+        }}
+        onDuplicate={id => {
+          void (async () => {
+            await duplicateTemplate(id)
+          })()
         }}
         onDelete={id => {
           void (async () => {

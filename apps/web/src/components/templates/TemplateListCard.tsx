@@ -5,6 +5,7 @@ export function TemplateListCard(props: {
   exerciseNameById: Record<string, string>
   onEdit: (id: string) => void
   onDelete: (id: string) => void
+  onDuplicate: (id: string) => void
 }) {
   return (
     <div className="card">
@@ -19,6 +20,7 @@ export function TemplateListCard(props: {
               </span>
               <div className="row">
                 {t.can_manage !== false && <button onClick={() => props.onEdit(t.id)}>Edit</button>}
+                {t.can_manage !== false && <button onClick={() => props.onDuplicate(t.id)}>Duplicate</button>}
                 {t.can_manage !== false && <button onClick={() => props.onDelete(t.id)}>Delete</button>}
               </div>
             </div>

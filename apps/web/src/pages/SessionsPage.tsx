@@ -11,6 +11,24 @@ import { useSessionLifecycle } from '../hooks/useSessionLifecycle'
 
 const DEFAULT_REST_SECONDS = 90
 
+function autosaveLabel(state: 'idle' | 'saving' | 'ok' | 'error') {
+  switch (state) {
+    case 'saving': return 'Saving…'
+    case 'ok': return 'Saved'
+    case 'error': return 'Retrying'
+    default: return 'Idle'
+  }
+}
+
+function autosaveBadgeClass(state: 'idle' | 'saving' | 'ok' | 'error') {
+  switch (state) {
+    case 'ok': return 'status-badge status-completed'
+    case 'saving': return 'status-badge status-in_progress'
+    case 'error': return 'status-badge status-skipped'
+    default: return 'status-badge status-planned'
+  }
+}
+
 export function SessionsPage({ token, athleteId }: { token: string; athleteId: string }) {
   const [searchParams] = useSearchParams()
   const [templateId, setTemplateId] = useState('')
@@ -96,7 +114,7 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
 
   return (
     <>
-      {notice && <div className="card"><p style={{ color: '#86efac', margin: 0 }}>{notice}</p></div>}
+      {notice && <div className="notice-banner" style={{ marginBottom: 18 }}><span>{notice}</span><button className="ghost" onClick={() => setNotice(null)}>Dismiss</button></div>}
 
       <SessionStarter
         templates={templates}
@@ -117,11 +135,13 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
       {session && (
         <>
           <div className="card">
-            <p className="small" style={{ margin: 0 }}>
-              Autosave: {autosaveState === 'saving' ? 'saving…' : autosaveState === 'ok' ? 'ok' : autosaveState === 'error' ? 'retrying' : 'idle'}
-              {session.last_saved_at ? ` · last saved ${new Date(session.last_saved_at).toLocaleTimeString()}` : ''}
-              {session.version ? ` · v${session.version}` : ''}
-            </p>
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="small">
+                {session.last_saved_at ? `Last saved ${new Date(session.last_saved_at).toLocaleTimeString()}` : 'Not saved yet'}
+                {session.version ? ` · v${session.version}` : ''}
+              </div>
+              <span className={autosaveBadgeClass(autosaveState)}>{autosaveLabel(autosaveState)}</span>
+            </div>
           </div>
           <InProgressSession
             session={session}

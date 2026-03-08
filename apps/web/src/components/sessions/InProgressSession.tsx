@@ -31,6 +31,10 @@ function setKey(loggedExerciseId: string, setNumber: number) {
   return `${loggedExerciseId}:${setNumber}`
 }
 
+function statusBadgeClass(status: 'done' | 'skipped') {
+  return status === 'done' ? 'status-badge status-done' : 'status-badge status-skipped'
+}
+
 export function InProgressSession(props: {
   session: SessionOut
   exerciseNameById: Record<string, string>
@@ -45,17 +49,29 @@ export function InProgressSession(props: {
   onFinish: () => void
   restTimer: ReactNode
 }) {
+  const flatSets = useMemo(() => {
+    const rows: Array<{ exerciseId: string; loggedExerciseId: string; setNumber: number; status: 'done' | 'skipped' }> = []
+    for (const ex of props.session.logged_exercises ?? []) {
+      for (const st of ex.sets ?? []) {
+        rows.push({ exerciseId: ex.exercise_id, loggedExerciseId: ex.id, setNumber: st.set_number, status: st.status })
+      }
+    }
+    return rows
+  }, [props.session.logged_exercises])
+
   const active = (() => {
     if (!props.activeSetKey) return null
     for (const ex of props.session.logged_exercises ?? []) {
       for (const st of ex.sets ?? []) {
         const k = setKey(ex.id, st.set_number)
         if (k === props.activeSetKey) {
+          const index = flatSets.findIndex(x => x.loggedExerciseId === ex.id && x.setNumber === st.set_number)
           return {
             loggedExerciseId: ex.id,
             setNumber: st.set_number,
             exerciseName: props.exerciseNameById[ex.exercise_id] ?? ex.exercise_id,
             usesWeight: st.planned_weight != null || st.actual_weight != null,
+            index,
           }
         }
       }
@@ -69,61 +85,89 @@ export function InProgressSession(props: {
     return props.setDrafts[k] ?? { actual_weight: '', actual_reps: '', status: 'done' as const }
   }, [active, props.setDrafts])
 
+  const doneCount = flatSets.filter(s => s.status === 'done').length
+  const progressPct = flatSets.length ? Math.round((doneCount / flatSets.length) * 100) : 0
+  const nextSetPreview = active && active.index >= 0 && active.index < flatSets.length - 1 ? flatSets[active.index + 1] : null
+
+  function adjustDraftNumber(key: string, field: 'actual_weight' | 'actual_reps', delta: number) {
+    const current = props.setDrafts[key] ?? { actual_weight: '', actual_reps: '', status: 'done' as const }
+    const raw = current[field]
+    const base = raw === '' ? 0 : Number(raw)
+    const next = Math.max(0, base + delta)
+    props.onChangeDraft(key, { ...current, [field]: String(Number.isInteger(next) ? next : Number(next.toFixed(1))) })
+  }
+
   return (
     <div className="card">
       <h3>Workout in progress</h3>
-      <p className="small">Exercises: {props.session.logged_exercises?.length ?? 0}</p>
-
-      {(props.session.logged_exercises ?? []).map(ex => (
-        <div key={ex.id} className="card" style={{ marginBottom: 10 }}>
-          <h4 style={{ marginBottom: 8 }}>{props.exerciseNameById[ex.exercise_id] ?? ex.exercise_id}</h4>
-          {(ex.sets ?? []).map(st => {
-            const k = setKey(ex.id, st.set_number)
-            const isActive = props.activeSetKey === k
-            const draft = props.setDrafts[k] ?? {
-              actual_weight: st.actual_weight != null ? String(st.actual_weight) : (st.planned_weight != null ? String(st.planned_weight) : ''),
-              actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.planned_reps != null ? String(st.planned_reps) : ''),
-              status: st.status === 'skipped' ? 'skipped' : 'done',
-            }
-            const usesWeight = st.planned_weight != null || draft.actual_weight !== ''
-            const hasLogged = draft.actual_reps !== '' || draft.actual_weight !== ''
-            const plannedText = usesWeight
-              ? `${st.planned_weight ?? '-'} kg × ${st.planned_reps ?? '-'} reps`
-              : `${st.planned_reps ?? '-'} reps`
-            const loggedText = hasLogged
-              ? (usesWeight
-                  ? `${draft.actual_weight || '-'} kg × ${draft.actual_reps || '-'} reps`
-                  : `${draft.actual_reps || '-'} reps`)
-              : '—'
-
-            return (
-              <button
-                key={k}
-                type="button"
-                className="set-row"
-                style={{ border: isActive ? '2px solid var(--accent)' : '1px solid var(--border)' }}
-                onClick={() => props.onSelectSet(k)}
-              >
-                <span><strong>Set {st.set_number}</strong></span>
-                <span className="small"><strong>Planned:</strong> {plannedText}</span>
-                <span className="small"><strong>Logged:</strong> {loggedText}</span>
-              </button>
-            )
-          })}
+      <div className="session-progress">
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div>
+            <div><strong>{doneCount}/{flatSets.length}</strong> sets completed</div>
+            <div className="small">{props.session.logged_exercises?.length ?? 0} exercises in this session</div>
+          </div>
+          <div className="status-badge status-in_progress">{progressPct}% complete</div>
         </div>
-      ))}
+        <div className="progress-track"><div className="progress-bar" style={{ width: `${progressPct}%` }} /></div>
+        {nextSetPreview && (
+          <div className="small" style={{ marginTop: 8 }}>
+            Next: {props.exerciseNameById[nextSetPreview.exerciseId] ?? nextSetPreview.exerciseId} · set {nextSetPreview.setNumber}
+          </div>
+        )}
+      </div>
+
+      {(props.session.logged_exercises ?? []).map(ex => {
+        const hasActive = (ex.sets ?? []).some(st => setKey(ex.id, st.set_number) === props.activeSetKey)
+        return (
+          <div key={ex.id} className={`card exercise-card${hasActive ? '' : ' dimmed'}`} style={{ marginBottom: 10 }}>
+            <h4 style={{ marginBottom: 8 }}>{props.exerciseNameById[ex.exercise_id] ?? ex.exercise_id}</h4>
+            {(ex.sets ?? []).map(st => {
+              const k = setKey(ex.id, st.set_number)
+              const isActive = props.activeSetKey === k
+              const draft = props.setDrafts[k] ?? {
+                actual_weight: st.actual_weight != null ? String(st.actual_weight) : (st.planned_weight != null ? String(st.planned_weight) : ''),
+                actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.planned_reps != null ? String(st.planned_reps) : ''),
+                status: st.status === 'skipped' ? 'skipped' : 'done',
+              }
+              const usesWeight = st.planned_weight != null || draft.actual_weight !== ''
+              const hasLogged = draft.actual_reps !== '' || draft.actual_weight !== ''
+              const plannedText = usesWeight
+                ? `${st.planned_weight ?? '-'} kg × ${st.planned_reps ?? '-'} reps`
+                : `${st.planned_reps ?? '-'} reps`
+              const loggedText = hasLogged
+                ? (usesWeight
+                    ? `${draft.actual_weight || '-'} kg × ${draft.actual_reps || '-'} reps`
+                    : `${draft.actual_reps || '-'} reps`)
+                : '—'
+
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  className={`set-row${isActive ? ' active' : ''}${st.status === 'done' ? ' completed' : ''}${st.status === 'skipped' ? ' skipped' : ''}`}
+                  onClick={() => props.onSelectSet(k)}
+                >
+                  <span><strong>Set {st.set_number}</strong></span>
+                  <span className="small"><strong>Planned:</strong> {plannedText}<br /><strong>Logged:</strong> {loggedText}</span>
+                  <span className={statusBadgeClass(st.status)}>{st.status}</span>
+                </button>
+              )
+            })}
+          </div>
+        )
+      })}
 
       <div className="sticky-set-actions" style={{ alignItems: 'stretch' }}>
         {active && activeDraft && (
           <>
             <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <strong>{active.exerciseName}</strong>
-              <span className="small">Set {active.setNumber}</span>
+              <span className="small">Set {active.setNumber} of {flatSets.length}</span>
             </div>
 
-            <div className="row" style={{ marginBottom: 8 }}>
+            <div className="grid-2" style={{ marginBottom: 8 }}>
               {active.usesWeight && (
-                <div style={{ flex: 1, minWidth: 120 }}>
+                <div>
                   <div className="small" style={{ marginBottom: 4 }}>Weight (kg)</div>
                   <input
                     value={activeDraft.actual_weight}
@@ -132,9 +176,14 @@ export function InProgressSession(props: {
                     placeholder="kg"
                     style={{ width: '100%' }}
                   />
+                  <div className="quick-stepper">
+                    <button type="button" onClick={() => adjustDraftNumber(setKey(active.loggedExerciseId, active.setNumber), 'actual_weight', -2.5)}>-2.5</button>
+                    <button type="button" onClick={() => adjustDraftNumber(setKey(active.loggedExerciseId, active.setNumber), 'actual_weight', 2.5)}>+2.5</button>
+                    <button type="button" onClick={() => adjustDraftNumber(setKey(active.loggedExerciseId, active.setNumber), 'actual_weight', 5)}>+5</button>
+                  </div>
                 </div>
               )}
-              <div style={{ flex: 1, minWidth: 120 }}>
+              <div>
                 <div className="small" style={{ marginBottom: 4 }}>Reps</div>
                 <input
                   value={activeDraft.actual_reps}
@@ -143,6 +192,11 @@ export function InProgressSession(props: {
                   placeholder="reps"
                   style={{ width: '100%' }}
                 />
+                <div className="quick-stepper">
+                  <button type="button" onClick={() => adjustDraftNumber(setKey(active.loggedExerciseId, active.setNumber), 'actual_reps', -1)}>-1</button>
+                  <button type="button" onClick={() => adjustDraftNumber(setKey(active.loggedExerciseId, active.setNumber), 'actual_reps', 1)}>+1</button>
+                  <button type="button" onClick={() => adjustDraftNumber(setKey(active.loggedExerciseId, active.setNumber), 'actual_reps', 2)}>+2</button>
+                </div>
               </div>
             </div>
 

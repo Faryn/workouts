@@ -20,9 +20,11 @@ export function SessionStarter(props: {
     <div className="card">
       <h2>Gym</h2>
       {props.hasActiveSession && (
-        <div className="card" style={{ marginBottom: 10, borderColor: '#60a5fa' }}>
-          <strong>Resume in-progress workout</strong>
-          <p className="small" style={{ marginTop: 6 }}>You already have a live session. Resume that instead of starting a duplicate.</p>
+        <div className="notice-banner" style={{ marginBottom: 10 }}>
+          <div>
+            <strong>Resume in-progress workout</strong>
+            <div className="small">You already have a live session. Resume that instead of starting a duplicate.</div>
+          </div>
           <button className="primary" onClick={props.onResume}>Resume session</button>
         </div>
       )}
@@ -36,7 +38,7 @@ export function SessionStarter(props: {
           ))}
         </select>
         <button onClick={props.onStartFromTemplate} disabled={!props.templateId || props.hasActiveSession}>
-          Start
+          Start from template
         </button>
       </div>
       <div className="row" style={{ marginTop: 8 }}>
@@ -49,14 +51,14 @@ export function SessionStarter(props: {
           ))}
         </select>
         <button onClick={props.onStartFromScheduled} disabled={!props.scheduledId || props.hasActiveSession}>
-          Go
+          Start planned workout
         </button>
       </div>
 
       <div className="row" style={{ marginTop: 10 }}>
         <span className="small">Autosave on</span>
-        <button onClick={props.onClearDraft}>Clear</button>
-        <button onClick={props.onResume}>Refresh / resume</button>
+        <button className="ghost" onClick={props.onClearDraft}>Clear draft</button>
+        <button className="ghost" onClick={props.onResume}>Refresh / resume</button>
       </div>
 
       {props.err && <p style={{ color: '#fca5a5' }}>{props.err}</p>}

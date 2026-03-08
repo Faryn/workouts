@@ -17,6 +17,8 @@ export function Layout({
   selectedAthleteId: string
   onSelectAthlete: (id: string) => void
 }) {
+  const selectedAthlete = athleteOptions.find(a => a.id === selectedAthleteId)
+
   return (
     <div className="container">
       <div className="card row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -35,16 +37,25 @@ export function Layout({
           )}
         </div>
         <div className="row" style={{ alignItems: 'center' }}>
-{me.role === 'trainer' && athleteOptions.length > 0 && (
-            <select value={selectedAthleteId} onChange={e => onSelectAthlete(e.target.value)}>
-              {athleteOptions.map(a => (
-                <option key={a.id} value={a.id}>{a.email}</option>
-              ))}
-            </select>
+          {me.role === 'trainer' && athleteOptions.length > 0 && (
+            <>
+              <span className="small">Athlete:</span>
+              <select value={selectedAthleteId} onChange={e => onSelectAthlete(e.target.value)}>
+                {athleteOptions.map(a => (
+                  <option key={a.id} value={a.id}>{a.email}</option>
+                ))}
+              </select>
+            </>
           )}
           <button onClick={onLogout}>Logout</button>
         </div>
       </div>
+      {me.role === 'trainer' && selectedAthlete && (
+        <div className="card" style={{ padding: '12px 16px' }}>
+          <div className="small">Trainer context</div>
+          <strong>Editing as coach for {selectedAthlete.email}</strong>
+        </div>
+      )}
       {children}
     </div>
   )
