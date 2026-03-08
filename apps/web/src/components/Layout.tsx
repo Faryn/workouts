@@ -22,7 +22,7 @@ export function Layout({
   return (
     <div className="container">
       <div className="card row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="row">
+        <nav className="row" aria-label="Primary navigation">
           {me.role === 'admin' ? (
             <NavLink to="/admin/users" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Users</NavLink>
           ) : (
@@ -35,23 +35,23 @@ export function Layout({
               )}
             </>
           )}
-        </div>
+        </nav>
         <div className="row" style={{ alignItems: 'center' }}>
           {me.role === 'trainer' && athleteOptions.length > 0 && (
-            <>
+            <label className="row" style={{ alignItems: 'center' }}>
               <span className="small">Athlete:</span>
-              <select value={selectedAthleteId} onChange={e => onSelectAthlete(e.target.value)}>
+              <select aria-label="Selected athlete" value={selectedAthleteId} onChange={e => onSelectAthlete(e.target.value)}>
                 {athleteOptions.map(a => (
                   <option key={a.id} value={a.id}>{a.email}</option>
                 ))}
               </select>
-            </>
+            </label>
           )}
           <button onClick={onLogout}>Logout</button>
         </div>
       </div>
       {me.role === 'trainer' && selectedAthlete && (
-        <div className="card" style={{ padding: '12px 16px' }}>
+        <div className="card" style={{ padding: '12px 16px' }} role="status" aria-live="polite">
           <div className="small">Trainer context</div>
           <strong>Editing as coach for {selectedAthlete.email}</strong>
         </div>
