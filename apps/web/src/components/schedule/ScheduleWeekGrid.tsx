@@ -13,10 +13,10 @@ export function ScheduleWeekGrid(props: {
   return (
     <div className="card">
       <h3>Calendar</h3>
-      <div className="row" style={{ marginBottom: 10, justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="row">
+      <div className="schedule-calendar-toolbar">
+        <div className="schedule-calendar-toolbar-main">
           <button onClick={() => props.setBaseMonth(addMonths(props.baseMonth, -1))}>← Month</button>
-          <strong style={{ paddingTop: 10 }}>{monthLabel(props.baseMonth)}</strong>
+          <strong className="schedule-calendar-month-label">{monthLabel(props.baseMonth)}</strong>
           <button onClick={() => props.setBaseMonth(addMonths(props.baseMonth, 1))}>Month →</button>
         </div>
         <button className="ghost" onClick={() => {
@@ -26,54 +26,33 @@ export function ScheduleWeekGrid(props: {
         }}>Today</button>
       </div>
 
-      <div className="small" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 8 }}>
+      <div className="small schedule-calendar-weekdays">
         <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
       </div>
 
-      {props.visibleWeeks.map((week, widx) => (
-        <div key={widx} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 8 }}>
-          {week.map((d) => {
-            const ds = iso(d)
-            const isToday = ds === today
-            const isSelected = props.selectedDate === ds
-            return (
-              <button
-                key={ds}
-                onClick={() => props.setSelectedDate(ds)}
-                style={{
-                  minHeight: 72,
-                  padding: 8,
-                  borderRadius: 10,
-                  border: isSelected
-                    ? '2px solid var(--accent)'
-                    : isToday
-                      ? '2px solid var(--accent-2)'
-                      : `1px solid ${props.dayStatusClass(ds)}`,
-                  background: isSelected ? 'rgba(59,130,246,0.14)' : isToday ? 'rgba(59,130,246,0.12)' : undefined,
-                  position: 'relative',
-                  textAlign: 'left',
-                }}
-              >
-                <div style={{ fontWeight: isSelected ? 700 : 500 }}>{d.getDate()}</div>
-                {props.hasEvents(ds) && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      bottom: 6,
-                      right: 8,
-                      width: 10,
-                      height: 10,
-                      borderRadius: '50%',
-                      background: props.dayStatusClass(ds),
-                      display: 'inline-block',
-                    }}
-                  />
-                )}
-              </button>
-            )
-          })}
-        </div>
-      ))}
+      <div className="schedule-calendar-grid">
+        {props.visibleWeeks.flat().map((d) => {
+          const ds = iso(d)
+          const isToday = ds === today
+          const isSelected = props.selectedDate === ds
+          return (
+            <button
+              key={ds}
+              onClick={() => props.setSelectedDate(ds)}
+              className={`schedule-calendar-day${isSelected ? ' selected' : ''}${isToday ? ' today' : ''}`}
+              style={{ borderColor: isSelected ? 'var(--accent)' : isToday ? 'var(--accent-2)' : props.dayStatusClass(ds) }}
+            >
+              <div className="schedule-calendar-day-number" style={{ fontWeight: isSelected ? 700 : 600 }}>{d.getDate()}</div>
+              {props.hasEvents(ds) && (
+                <span
+                  className="schedule-calendar-day-dot"
+                  style={{ background: props.dayStatusClass(ds) }}
+                />
+              )}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
