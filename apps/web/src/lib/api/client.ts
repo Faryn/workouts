@@ -32,15 +32,17 @@ export async function req<T>(path: string, init: RequestInit = {}, token?: strin
   const extraHeaders = (init.headers ?? {}) as Record<string, string>
   const headers: Record<string, string> = { 'Content-Type': 'application/json', ...extraHeaders }
   if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers })
+  const res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: 'same-origin' })
   if (!res.ok) {
     throw await parseApiError(res)
   }
   return res.json()
 }
 
-export async function downloadCsv(path: string, token: string, filename: string) {
-  const res = await fetch(`${API_BASE}${path}`, { headers: { Authorization: `Bearer ${token}` } })
+export async function downloadCsv(path: string, token: string | undefined, filename: string) {
+  const headers: Record<string, string> = {}
+  if (token) headers.Authorization = `Bearer ${token}`
+  const res = await fetch(`${API_BASE}${path}`, { headers, credentials: 'same-origin' })
   if (!res.ok) {
     throw await parseApiError(res)
   }

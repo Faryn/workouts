@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { RequireRole } from './components/RoleRoute'
 import { api, type AthleteLite, type Me } from './lib/api'
+import { sessionMarkerStorage } from './lib/storage'
 import { DashboardPage } from './pages/DashboardPage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
 import { LoginPage } from './pages/LoginPage'
@@ -22,27 +23,32 @@ if ('serviceWorker' in navigator) {
 }
 
 function App() {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'))
+  const [authenticated, setAuthenticated] = useState<boolean | null>(sessionMarkerStorage.get() ? true : null)
   const [me, setMe] = useState<Me | null>(null)
   const [athleteOptions, setAthleteOptions] = useState<AthleteLite[]>([])
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!token) return
-    localStorage.setItem('token', token)
-    api.me(token).then(async user => {
+    if (authenticated === false) return
+    api.me().then(async user => {
+      sessionMarkerStorage.set()
+      setAuthenticated(true)
       setMe(user)
-      const athletes = await api.assignedAthletes(token)
+      const athletes = await api.assignedAthletes()
       setAthleteOptions(athletes)
       const defaultAthlete = user.role === 'athlete' ? user.id : (athletes[0]?.id ?? null)
       setSelectedAthleteId(defaultAthlete)
     }).catch(() => {
-      setToken(null)
-      localStorage.removeItem('token')
+      setAuthenticated(false)
+      setMe(null)
+      setAthleteOptions([])
+      setSelectedAthleteId(null)
+      sessionMarkerStorage.clear()
     })
-  }, [token])
+  }, [authenticated])
 
-  if (!token) return <LoginPage onToken={setToken} />
+  if (authenticated === null) return <div className="container"><div className="card">Loading profile...</div></div>
+  if (!authenticated) return <LoginPage onLogin={() => setAuthenticated(true)} />
   if (!me) return <div className="container"><div className="card">Loading profile...</div></div>
 
   const needsAthleteContext = me.role !== 'admin'
@@ -56,10 +62,7 @@ function App() {
           athleteOptions={athleteOptions}
           selectedAthleteId={selectedAthleteId}
           onSelectAthlete={setSelectedAthleteId}
-          onLogout={() => {
-            setToken(null)
-            localStorage.removeItem('token')
-          }}
+          onLogout={() => { void logout() }}
         >
           <div className="card">
             <h3>No athlete selected</h3>
@@ -71,6 +74,19 @@ function App() {
   }
 
   const athleteId = selectedAthleteId as string
+  const token = ''
+
+  async function logout() {
+    try {
+      await api.logout()
+    } finally {
+      setAuthenticated(false)
+      setMe(null)
+      setAthleteOptions([])
+      setSelectedAthleteId(null)
+      sessionMarkerStorage.clear()
+    }
+  }
 
   return (
     <BrowserRouter>
@@ -79,10 +95,7 @@ function App() {
         athleteOptions={athleteOptions}
         selectedAthleteId={selectedAthleteId}
         onSelectAthlete={setSelectedAthleteId}
-        onLogout={() => {
-          setToken(null)
-          localStorage.removeItem('token')
-        }}
+        onLogout={() => { void logout() }}
       >
         <Routes>
           <Route

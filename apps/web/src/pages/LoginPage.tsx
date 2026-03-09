@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { api } from '../lib/api'
 import { errorMessage } from '../lib/errors'
 
-export function LoginPage({ onToken }: { onToken: (token: string) => void }) {
+export function LoginPage({ onLogin }: { onLogin: () => void }) {
   const [email, setEmail] = useState('athlete@example.com')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -11,8 +11,8 @@ export function LoginPage({ onToken }: { onToken: (token: string) => void }) {
     e.preventDefault()
     setError(null)
     try {
-      const res = await api.login(email, password)
-      onToken(res.access_token)
+      await api.login(email, password)
+      onLogin()
     } catch (err: unknown) {
       setError(errorMessage(err))
     }
