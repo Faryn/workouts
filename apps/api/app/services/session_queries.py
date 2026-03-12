@@ -1,6 +1,6 @@
-from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app.core.errors import AppError
 from app.core.permissions import ensure_self_or_assigned
 from app.models.user import User
 from app.repositories import session_repo
@@ -31,7 +31,7 @@ def list_sessions(db: Session, current_user: User, athlete_id: str) -> list[dict
 def get_session_detail(db: Session, current_user: User, session_id: str) -> dict:
     ws = session_repo.get_session(db, session_id)
     if not ws:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise AppError(code="session_not_found", message="Session not found", status_code=404)
     ensure_self_or_assigned(db, current_user, ws.athlete_id)
     return serialize_session(db, ws)
 

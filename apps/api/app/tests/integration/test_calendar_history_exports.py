@@ -75,6 +75,14 @@ def test_sessions_history_and_detail(client, seeded_user, db_session):
     assert len(detail.json()['logged_exercises']) == 1
 
 
+def test_session_detail_missing_session_returns_app_error(client, seeded_user):
+    headers = _auth(client, seeded_user.email, 'secret123')
+    detail = client.get('/v1/sessions/not-a-real-session', headers=headers)
+    assert detail.status_code == 404
+    assert detail.json()['error']['code'] == 'session_not_found'
+
+
+
 def test_exports_csv_endpoints(client, seeded_user, db_session):
     from app.models.cardio import CardioSession
     from app.models.exercise import Exercise

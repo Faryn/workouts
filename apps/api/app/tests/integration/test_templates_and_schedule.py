@@ -110,6 +110,17 @@ def test_template_create_rejects_invisible_exercise(client, seeded_user, db_sess
         headers=headers,
     )
     assert create.status_code == 400
+    body = create.json()
+    assert body['error']['code'] == 'exercise_not_visible'
+    assert other_owned.id in body['error']['message']
+
+
+
+def test_template_patch_missing_template_returns_app_error(client, seeded_user):
+    headers = _auth(client, seeded_user.email, 'secret123')
+    patched = client.patch('/v1/templates/not-a-real-template', json={'name': 'Nope'}, headers=headers)
+    assert patched.status_code == 404
+    assert patched.json()['error']['code'] == 'template_not_found'
 
 
 def test_schedule_create_move_copy_for_own_items(client, seeded_user):

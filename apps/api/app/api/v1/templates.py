@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -21,40 +21,27 @@ def list_templates(
 
 @router.post('/', response_model=TemplateOut)
 def create_template(payload: TemplateCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    try:
-        return template_service.create_template(
-            db,
-            current_user,
-            payload.name,
-            payload.notes,
-            [e.model_dump() for e in payload.exercises],
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return template_service.create_template(
+        db,
+        current_user,
+        payload.name,
+        payload.notes,
+        [e.model_dump() for e in payload.exercises],
+    )
 
 
 @router.patch('/{template_id}', response_model=TemplateOut)
 def patch_template(template_id: str, payload: TemplatePatch, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    try:
-        t = template_service.patch_template(
-            db,
-            current_user,
-            template_id,
-            payload.name,
-            payload.notes,
-            [e.model_dump() for e in payload.exercises] if payload.exercises is not None else None,
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    if not t:
-        raise HTTPException(status_code=404, detail='Template not found')
-    return t
+    return template_service.patch_template(
+        db,
+        current_user,
+        template_id,
+        payload.name,
+        payload.notes,
+        [e.model_dump() for e in payload.exercises] if payload.exercises is not None else None,
+    )
 
 
 @router.delete('/{template_id}')
 def delete_template(template_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    ok = template_service.delete_template(db, current_user, template_id)
-    if not ok:
-        raise HTTPException(status_code=404, detail='Template not found')
-    return {'ok': True}
+    return template_service.delete_template(db, current_user, template_id)

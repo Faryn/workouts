@@ -2,35 +2,15 @@ import json
 
 from sqlalchemy.orm import Session
 
+from app.core.errors import AppError
 from app.core.permissions import ensure_self_or_assigned
 from app.models.assignment import TrainerAssignment
 from app.models.audit import AuditEvent
-from app.models.exercise import Exercise
 from app.models.template import WorkoutTemplate
 from app.models.user import User
 from app.repositories import template_repo
-
-
-def _is_assigned_trainer_for_athlete(db: Session, trainer_id: str, athlete_id: str) -> bool:
-    link = (
-        db.query(TrainerAssignment)
-        .filter(
-            TrainerAssignment.trainer_id == trainer_id,
-            TrainerAssignment.athlete_id == athlete_id,
-        )
-        .first()
-    )
-    return link is not None
-
-
-def _can_manage_template(db: Session, user: User, template: WorkoutTemplate) -> bool:
-    if user.role == 'admin':
-        return True
-    if template.owner_id == user.id:
-        return True
-    if user.role == 'trainer':
-        return _is_assigned_trainer_for_athlete(db, user.id, template.owner_id)
-    return False
+from app.services.template_policy import can_manage_template, validate_exercises_payload
+from app.services.template_serializers import serialize_template
 
 
 def _record_template_audit(
@@ -51,65 +31,6 @@ def _record_template_audit(
     db.add(evt)
 
 
-def _serialize_template(db: Session, t: WorkoutTemplate, user: User) -> dict:
-    exercise_rows = template_repo.list_exercises(db, t.id)
-    exercise_map = {
-        ex.id: ex
-        for ex in db.query(Exercise).filter(Exercise.id.in_([row.exercise_id for row in exercise_rows])).all()
-    }
-    serialized_exercises: list[dict] = []
-    for row in exercise_rows:
-        ex = exercise_map.get(row.exercise_id)
-        serialized_exercises.append(
-            {
-                "id": row.id,
-                "exercise_id": row.exercise_id,
-                "exercise_name": ex.name if ex is not None else None,
-                "sort_order": row.sort_order,
-                "planned_sets": row.planned_sets,
-                "planned_reps": row.planned_reps,
-                "planned_weight": row.planned_weight,
-                "rest_seconds": row.rest_seconds,
-                "notes": row.notes,
-            }
-        )
-
-    return {
-        "id": t.id,
-        "name": t.name,
-        "notes": t.notes,
-        "owner_id": t.owner_id,
-        "can_manage": _can_manage_template(db, user, t),
-        "exercises": serialized_exercises,
-    }
-
-
-def _is_exercise_visible_to_user(db: Session, exercise: Exercise, user: User, template_owner_id: str | None = None) -> bool:
-    if exercise.owner_scope == "global":
-        return True
-    if exercise.owner_scope in {"athlete", "trainer"} and exercise.owner_id == user.id:
-        return True
-    if user.role == 'trainer' and template_owner_id and _is_assigned_trainer_for_athlete(db, user.id, template_owner_id):
-        return exercise.owner_id == template_owner_id
-    return False
-
-
-def _validate_exercises_payload(
-    db: Session,
-    user: User,
-    exercises: list[dict],
-    template_owner_id: str | None = None,
-) -> None:
-    for item in exercises:
-        ex = db.get(Exercise, item["exercise_id"])
-        if not ex:
-            raise ValueError(f"Exercise not found: {item['exercise_id']}")
-        if ex.type != "strength":
-            raise ValueError("Only strength exercises can be used in workout templates")
-        if not _is_exercise_visible_to_user(db, ex, user, template_owner_id=template_owner_id):
-            raise ValueError(f"Exercise not visible to user: {item['exercise_id']}")
-
-
 def list_templates(db: Session, user: User, athlete_id: str | None = None) -> list[dict]:
     if user.role == 'trainer' and athlete_id:
         ensure_self_or_assigned(db, user, athlete_id)
@@ -125,7 +46,7 @@ def list_templates(db: Session, user: User, athlete_id: str | None = None) -> li
         rows = template_repo.list_by_owners(db, owner_ids)
     else:
         rows = template_repo.list_by_owner(db, user.id)
-    return [_serialize_template(db, t, user) for t in rows]
+    return [serialize_template(db, template, user) for template in rows]
 
 
 def create_template(
@@ -136,16 +57,16 @@ def create_template(
     exercises: list[dict] | None = None,
 ) -> dict:
     exercises = exercises or []
-    _validate_exercises_payload(db, user, exercises, template_owner_id=user.id)
+    validate_exercises_payload(db, user, exercises, template_owner_id=user.id)
 
-    t = template_repo.create(db, user.id, name, notes)
+    template = template_repo.create(db, user.id, name, notes)
     if exercises:
-        template_repo.replace_exercises(db, t.id, exercises)
+        template_repo.replace_exercises(db, template.id, exercises)
 
-    _record_template_audit(db, user, 'template.create', t, {'exercise_count': len(exercises)})
+    _record_template_audit(db, user, 'template.create', template, {'exercise_count': len(exercises)})
     db.commit()
-    db.refresh(t)
-    return _serialize_template(db, t, user)
+    db.refresh(template)
+    return serialize_template(db, template, user)
 
 
 def patch_template(
@@ -155,24 +76,26 @@ def patch_template(
     name: str | None,
     notes: str | None,
     exercises: list[dict] | None,
-) -> dict | None:
-    t = template_repo.get(db, template_id)
-    if not t or not _can_manage_template(db, user, t):
-        return None
+) -> dict:
+    template = template_repo.get(db, template_id)
+    if not template:
+        raise AppError(code='template_not_found', message='Template not found', status_code=404)
+    if not can_manage_template(db, user, template):
+        raise AppError(code='forbidden', message='Forbidden', status_code=403)
 
     if name is not None:
-        t.name = name
+        template.name = name
     if notes is not None:
-        t.notes = notes
+        template.notes = notes
     if exercises is not None:
-        _validate_exercises_payload(db, user, exercises, template_owner_id=t.owner_id)
-        template_repo.replace_exercises(db, t.id, exercises)
+        validate_exercises_payload(db, user, exercises, template_owner_id=template.owner_id)
+        template_repo.replace_exercises(db, template.id, exercises)
 
     _record_template_audit(
         db,
         user,
         'template.patch',
-        t,
+        template,
         {
             'updated_name': name is not None,
             'updated_notes': notes is not None,
@@ -180,14 +103,17 @@ def patch_template(
         },
     )
     db.commit()
-    db.refresh(t)
-    return _serialize_template(db, t, user)
+    db.refresh(template)
+    return serialize_template(db, template, user)
 
 
-def delete_template(db: Session, user: User, template_id: str) -> bool:
-    t = template_repo.get(db, template_id)
-    if not t or not _can_manage_template(db, user, t):
-        return False
-    _record_template_audit(db, user, 'template.delete', t, None)
-    template_repo.delete(db, t)
-    return True
+def delete_template(db: Session, user: User, template_id: str) -> dict:
+    template = template_repo.get(db, template_id)
+    if not template:
+        raise AppError(code='template_not_found', message='Template not found', status_code=404)
+    if not can_manage_template(db, user, template):
+        raise AppError(code='forbidden', message='Forbidden', status_code=403)
+
+    _record_template_audit(db, user, 'template.delete', template, None)
+    template_repo.delete(db, template)
+    return {'ok': True}
