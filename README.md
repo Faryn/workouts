@@ -11,6 +11,7 @@ Implemented slices include:
 - Exercise CRUD with visibility/ownership filtering
 - Program CRUD (template-backed) with ordered exercises, role-aware `can_manage`, and `exercise_name` fallback
 - Scheduling (create/move/copy/skip/delete + recurring patterns)
+- Slice-by-slice backend refactor toward thin routers plus domain-local service/policy/serializer modules (completed so far for templates, exercises, auth/assignment, and scheduling)
 - Dashboard-centered schedule/calendar flow (upcoming workouts, calendar, selected-day details, quick add, advanced scheduling tools)
 - Session flow (start, log sets, autosave, finish, history, latest in-progress)
 - Session reliability hardening:
@@ -124,6 +125,9 @@ What `deploy-live` does:
 - runs a live backup before rollout (default: `~/backups/workout-app` on the server)
 - pulls and rebuilds on the server
 - runs a post-deploy smoke test that checks env wiring, DB visibility, server JWT auth, and expected users
+
+Current deploy note:
+- the final token-based smoke probe can occasionally hit a brief startup-window `502 Bad Gateway` immediately after API container restart even when the app becomes healthy seconds later; if that happens, verify `/api/v1/health` again after a short wait before treating the deploy as failed.
 
 See `docs/admin/deployment.md` for guardrails and restore verification.
 

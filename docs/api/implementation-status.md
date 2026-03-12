@@ -66,3 +66,4 @@
 - Calendar month view uses a compact day-cell layout with subtle event dots, with strong emphasis reserved for selected day and today.
 - Error responses support structured shape for app-level authorization/domain errors:
   - `{ "error": { "code": string, "message": string, "details": object } }`
+- Current backend refactor direction is slice-by-slice alignment around thin routers plus domain-local service/policy/serializer modules. Templates, exercises, auth/assignment, and scheduling now follow that pattern more closely than before.
