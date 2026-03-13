@@ -66,4 +66,5 @@
 - Calendar month view uses a compact day-cell layout with subtle event dots, with strong emphasis reserved for selected day and today.
 - Error responses support structured shape for app-level authorization/domain errors:
   - `{ "error": { "code": string, "message": string, "details": object } }`
-- Current backend refactor direction is slice-by-slice alignment around thin routers plus domain-local service/policy/serializer modules. Templates, exercises, auth/assignment, and scheduling now follow that pattern more closely than before.
+- Current backend refactor direction is slice-by-slice alignment around thin routers plus domain-local service/policy/serializer modules. Templates, exercises, auth/assignment, scheduling, and session queries now follow that pattern more closely than before.
+- The session slice is intentionally split: `session_queries.py` now uses domain-local policy/summary serializers, while `session_commands.py` remains the reliability-focused mutation path for optimistic concurrency and stale-write protection.

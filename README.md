@@ -11,7 +11,7 @@ Implemented slices include:
 - Exercise CRUD with visibility/ownership filtering
 - Program CRUD (template-backed) with ordered exercises, role-aware `can_manage`, and `exercise_name` fallback
 - Scheduling (create/move/copy/skip/delete + recurring patterns)
-- Slice-by-slice backend refactor toward thin routers plus domain-local service/policy/serializer modules (completed so far for templates, exercises, auth/assignment, and scheduling)
+- Slice-by-slice backend refactor toward thin routers plus domain-local service/policy/serializer modules (completed so far for templates, exercises, auth/assignment, scheduling, and session-query handling)
 - Dashboard-centered schedule/calendar flow (upcoming workouts, calendar, selected-day details, quick add, advanced scheduling tools)
 - Session flow (start, log sets, autosave, finish, history, latest in-progress)
 - Session reliability hardening:

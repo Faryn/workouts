@@ -16,6 +16,7 @@ Recent refactors moved multiple slices toward the same shape:
 - `exercise_service.py` + `exercise_policy.py` + `exercise_serializers.py`
 - `auth_service.py` + `assignment_policy.py`
 - `schedule_service.py` + `schedule_policy.py` + `schedule_serializers.py`
+- `session_queries.py` + `session_policy.py` + `session_summary_serializers.py` (while leaving `session_commands.py` as the reliability-heavy command path)
 
 The intended direction is **domain-local policy modules**, not a single global permissions hub. Routers should stay thin, service modules should orchestrate, policy modules should own slice-specific authorization/business rules, and serializers should shape API payloads.
 
