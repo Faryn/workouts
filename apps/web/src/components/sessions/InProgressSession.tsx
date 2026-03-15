@@ -109,86 +109,43 @@ export function InProgressSession(props: {
   }
 
   return (
-    <div className="card">
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <div>
-          <h3 style={{ marginBottom: 6 }}>Workout in progress</h3>
-          <div className="small">Keep moving. Your latest changes save automatically.</div>
-        </div>
-        <div className="train-status-indicator">
-          <span className={props.autosaveStateClassName}>{props.autosaveStateLabel}</span>
-          {props.autosaveMeta && <div className="small" style={{ textAlign: 'right', marginTop: 6 }}>{props.autosaveMeta}</div>}
-        </div>
-      </div>
-
-      <div className="session-progress">
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+    <div className="stack">
+      <div className="card current-set-card">
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div>
-            <div><strong>{completedCount}/{flatSets.length}</strong> sets completed</div>
-            <div className="small">{props.session.logged_exercises?.length ?? 0} exercises in this session</div>
+            <div className="section-kicker">Current set</div>
+            <h3 style={{ marginBottom: 6 }}>{active?.exerciseName ?? 'Workout in progress'}</h3>
+            <div className="small">
+              {active ? `Set ${active.setNumber} of ${active.exerciseSetCount}` : 'Keep moving. Your latest changes save automatically.'}
+            </div>
           </div>
-          <div className="status-badge status-in_progress">{progressPct}% complete</div>
+          <div className="train-status-indicator">
+            <span className={props.autosaveStateClassName}>{props.autosaveStateLabel}</span>
+            {props.autosaveMeta && <div className="small" style={{ textAlign: 'right', marginTop: 6 }}>{props.autosaveMeta}</div>}
+          </div>
         </div>
-        <div className="progress-track"><div className="progress-bar" style={{ width: `${progressPct}%` }} /></div>
-        {(prevSetPreview || nextSetPreview) && (
-          <div className="small" style={{ marginTop: 8 }}>
-            {prevSetPreview && <>Previous: {props.exerciseNameById[prevSetPreview.exerciseId] ?? prevSetPreview.exerciseId} · set {prevSetPreview.setNumber}</>}
-            {prevSetPreview && nextSetPreview && ' · '}
-            {nextSetPreview && <>Next: {props.exerciseNameById[nextSetPreview.exerciseId] ?? nextSetPreview.exerciseId} · set {nextSetPreview.setNumber}</>}
+
+        <div className="session-progress compact-progress">
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div>
+              <div><strong>{completedCount}/{flatSets.length}</strong> sets completed</div>
+              <div className="small">{props.session.logged_exercises?.length ?? 0} exercises in this session</div>
+            </div>
+            <div className="status-badge status-in_progress">{progressPct}% complete</div>
           </div>
-        )}
-      </div>
+          <div className="progress-track"><div className="progress-bar" style={{ width: `${progressPct}%` }} /></div>
+          {(prevSetPreview || nextSetPreview) && (
+            <div className="small" style={{ marginTop: 8 }}>
+              {prevSetPreview && <>Previous: {props.exerciseNameById[prevSetPreview.exerciseId] ?? prevSetPreview.exerciseId} · set {prevSetPreview.setNumber}</>}
+              {prevSetPreview && nextSetPreview && ' · '}
+              {nextSetPreview && <>Next: {props.exerciseNameById[nextSetPreview.exerciseId] ?? nextSetPreview.exerciseId} · set {nextSetPreview.setNumber}</>}
+            </div>
+          )}
+        </div>
 
-      {(props.session.logged_exercises ?? []).map(ex => {
-        const hasActive = (ex.sets ?? []).some(st => setKey(ex.id, st.set_number) === props.activeSetKey)
-        return (
-          <div key={ex.id} className={`card exercise-card${hasActive ? '' : ' dimmed'}`} style={{ marginBottom: 10 }}>
-            <h4 style={{ marginBottom: 8 }}>{props.exerciseNameById[ex.exercise_id] ?? ex.exercise_id}</h4>
-            {(ex.sets ?? []).map(st => {
-              const k = setKey(ex.id, st.set_number)
-              const isActive = props.activeSetKey === k
-              const draft = props.setDrafts[k] ?? {
-                actual_weight: st.actual_weight != null ? String(st.actual_weight) : (st.status === 'pending' ? '' : (st.planned_weight != null ? String(st.planned_weight) : '')),
-                actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.status === 'pending' ? '' : (st.planned_reps != null ? String(st.planned_reps) : '')),
-                status: st.status === 'skipped' ? 'skipped' : 'done',
-              }
-              const usesWeight = st.planned_weight != null || draft.actual_weight !== ''
-              const hasLogged = draft.actual_reps !== '' || draft.actual_weight !== ''
-              const plannedText = usesWeight
-                ? `${st.planned_weight ?? '-'} kg × ${st.planned_reps ?? '-'} reps`
-                : `${st.planned_reps ?? '-'} reps`
-              const loggedText = hasLogged
-                ? (usesWeight
-                    ? `${draft.actual_weight || '-'} kg × ${draft.actual_reps || '-'} reps`
-                    : `${draft.actual_reps || '-'} reps`)
-                : '—'
-
-              return (
-                <button
-                  key={k}
-                  type="button"
-                  className={`set-row${isActive ? ' active' : ''}${st.status === 'done' ? ' completed' : ''}${st.status === 'skipped' ? ' skipped' : ''}`}
-                  onClick={() => props.onSelectSet(k)}
-                >
-                  <span><strong>Set {st.set_number}</strong></span>
-                  <span className="small"><strong>Planned:</strong> {plannedText}<br /><strong>Logged:</strong> {loggedText}</span>
-                  <span className={statusBadgeClass(st.status)}>{st.status}</span>
-                </button>
-              )
-            })}
-          </div>
-        )
-      })}
-
-      <div className="sticky-set-actions" style={{ alignItems: 'stretch' }}>
         {active && activeDraft && (
           <>
-            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <strong>{active.exerciseName}</strong>
-              <span className="small">Set {active.setNumber} of {active.exerciseSetCount}</span>
-            </div>
-
-            <div className="grid-2" style={{ marginBottom: 8 }}>
+            <div className="grid-2" style={{ marginBottom: 10 }}>
               {active.usesWeight && (
                 <div>
                   <div className="small" style={{ marginBottom: 4 }}>Weight (kg)</div>
@@ -223,35 +180,82 @@ export function InProgressSession(props: {
               </div>
             </div>
 
-            <div style={{ marginBottom: 8 }}>
-              <div className="small" style={{ marginBottom: 4 }}>Session notes</div>
-              <textarea
-                value={props.sessionNotes}
-                onChange={e => props.onChangeNotes(e.target.value)}
-                rows={3}
-                placeholder="How did this session feel?"
-                style={{ width: '100%' }}
-              />
+            <div className="row" style={{ gap: 10, marginBottom: 10 }}>
+              <button style={{ flex: 1 }} onClick={props.onMovePrev} disabled={!prevSetPreview}>Previous</button>
+              <button style={{ flex: 1 }} onClick={props.onMoveNext} disabled={!nextSetPreview}>Next</button>
             </div>
 
-            <div className="row" style={{ gap: 10, marginBottom: 8 }}>
-              <button style={{ flex: 1 }} onClick={props.onMovePrev} disabled={!prevSetPreview}>Previous set</button>
-              <button style={{ flex: 1 }} onClick={props.onMoveNext} disabled={!nextSetPreview}>Next set</button>
-            </div>
-
-            <div className="row" style={{ gap: 10, marginBottom: 8 }}>
+            <div className="row" style={{ gap: 10, marginBottom: 10 }}>
               <button className="primary" style={{ flex: 1, minHeight: 52 }} onClick={() => props.onDone(active.loggedExerciseId, active.setNumber)}>Done</button>
               <button style={{ flex: 1, minHeight: 52 }} onClick={() => props.onSkip(active.loggedExerciseId, active.setNumber)}>Skip</button>
             </div>
           </>
         )}
 
-        <div>{props.restTimer}</div>
+        <div style={{ marginBottom: 10 }}>{props.restTimer}</div>
+
+        <details className="advanced-panel">
+          <summary>Session notes</summary>
+          <div style={{ marginTop: 10 }}>
+            <textarea
+              value={props.sessionNotes}
+              onChange={e => props.onChangeNotes(e.target.value)}
+              rows={3}
+              placeholder="How did this session feel?"
+              style={{ width: '100%' }}
+            />
+          </div>
+        </details>
+
+        <div className="row" style={{ justifyContent: 'space-between', marginTop: 12 }}>
+          <button className="ghost" onClick={props.onLeave}>Back to dashboard</button>
+          <button onClick={props.onFinish}>Finish session</button>
+        </div>
       </div>
 
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <button className="ghost" onClick={props.onLeave}>Back to dashboard</button>
-        <button onClick={props.onFinish}>Finish session</button>
+      <div className="card">
+        <div className="section-kicker">Workout map</div>
+        <h4 style={{ marginBottom: 10 }}>Jump anywhere</h4>
+        {(props.session.logged_exercises ?? []).map(ex => {
+          const hasActive = (ex.sets ?? []).some(st => setKey(ex.id, st.set_number) === props.activeSetKey)
+          return (
+            <div key={ex.id} className={`card exercise-card compact-exercise-card${hasActive ? '' : ' dimmed'}`} style={{ marginBottom: 10 }}>
+              <h4 style={{ marginBottom: 8 }}>{props.exerciseNameById[ex.exercise_id] ?? ex.exercise_id}</h4>
+              {(ex.sets ?? []).map(st => {
+                const k = setKey(ex.id, st.set_number)
+                const isActive = props.activeSetKey === k
+                const draft = props.setDrafts[k] ?? {
+                  actual_weight: st.actual_weight != null ? String(st.actual_weight) : (st.status === 'pending' ? '' : (st.planned_weight != null ? String(st.planned_weight) : '')),
+                  actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.status === 'pending' ? '' : (st.planned_reps != null ? String(st.planned_reps) : '')),
+                  status: st.status === 'skipped' ? 'skipped' : 'done',
+                }
+                const usesWeight = st.planned_weight != null || draft.actual_weight !== ''
+                const hasLogged = draft.actual_reps !== '' || draft.actual_weight !== ''
+                const plannedText = usesWeight
+                  ? `${st.planned_weight ?? '-'} kg × ${st.planned_reps ?? '-'} reps`
+                  : `${st.planned_reps ?? '-'} reps`
+                const loggedText = hasLogged
+                  ? (usesWeight
+                      ? `${draft.actual_weight || '-'} kg × ${draft.actual_reps || '-'} reps`
+                      : `${draft.actual_reps || '-'} reps`)
+                  : '—'
+
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    className={`set-row compact-set-row${isActive ? ' active' : ''}${st.status === 'done' ? ' completed' : ''}${st.status === 'skipped' ? ' skipped' : ''}`}
+                    onClick={() => props.onSelectSet(k)}
+                  >
+                    <span><strong>Set {st.set_number}</strong></span>
+                    <span className="small"><strong>Planned:</strong> {plannedText}<br /><strong>Logged:</strong> {loggedText}</span>
+                    <span className={statusBadgeClass(st.status)}>{st.status}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
