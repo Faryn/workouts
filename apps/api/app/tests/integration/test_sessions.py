@@ -42,6 +42,7 @@ def test_session_start_from_scheduled_copies_planned_sets(client, seeded_user, d
     assert len(body['logged_exercises'][0]['sets']) == 3
     assert body['logged_exercises'][0]['sets'][0]['planned_reps'] == 5
     assert body['logged_exercises'][0]['sets'][0]['planned_weight'] == 80.0
+    assert body['logged_exercises'][0]['sets'][0]['status'] == 'pending'
 
 
 def test_duplicate_session_start_reuses_existing_for_same_scheduled_workout(client, seeded_user, db_session):
@@ -66,6 +67,26 @@ def test_duplicate_session_start_reuses_existing_for_same_scheduled_workout(clie
     assert first.status_code == 200
     assert second.status_code == 200
     assert second.json()['id'] == first.json()['id']
+
+
+def test_untouched_pending_sets_do_not_count_as_done(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+    from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
+
+    ex = Exercise(name='Row', type='strength', owner_scope='global')
+    db_session.add(ex); db_session.commit(); db_session.refresh(ex)
+
+    tpl = WorkoutTemplate(owner_id=seeded_user.id, name='Row Day')
+    db_session.add(tpl); db_session.commit(); db_session.refresh(tpl)
+    db_session.add(WorkoutTemplateExercise(template_id=tpl.id, exercise_id=ex.id, sort_order=1, planned_sets=2, planned_reps=8, planned_weight=50.0))
+    db_session.commit()
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    start = client.post('/v1/sessions/start', json={'template_id': tpl.id}, headers=headers)
+    assert start.status_code == 200
+    body = start.json()
+    statuses = [st['status'] for st in body['logged_exercises'][0]['sets']]
+    assert statuses == ['pending', 'pending']
 
 
 def test_duplicate_session_start_blocks_new_session_when_other_in_progress_exists(client, seeded_user, db_session):

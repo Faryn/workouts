@@ -131,8 +131,8 @@ export function useSessionLifecycle(params: {
         const k = setKey(ex.id, st.set_number)
         if (!firstKey) firstKey = k
         next[k] = {
-          actual_weight: st.actual_weight != null ? String(st.actual_weight) : (st.planned_weight != null ? String(st.planned_weight) : ''),
-          actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.planned_reps != null ? String(st.planned_reps) : ''),
+          actual_weight: st.actual_weight != null ? String(st.actual_weight) : (st.status === 'pending' ? '' : (st.planned_weight != null ? String(st.planned_weight) : '')),
+          actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.status === 'pending' ? '' : (st.planned_reps != null ? String(st.planned_reps) : '')),
           status: st.status === 'skipped' ? 'skipped' : 'done',
         }
       }

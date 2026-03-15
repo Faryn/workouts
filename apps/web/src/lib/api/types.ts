@@ -108,7 +108,7 @@ export type SessionSet = {
   planned_reps?: number | null
   actual_weight?: number | null
   actual_reps?: number | null
-  status: 'done' | 'skipped'
+  status: 'pending' | 'done' | 'skipped'
   notes?: string | null
 }
 

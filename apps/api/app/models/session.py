@@ -41,5 +41,5 @@ class LoggedSet(Base):
     planned_reps: Mapped[int | None] = mapped_column(Integer, nullable=True)
     actual_weight: Mapped[float | None] = mapped_column(nullable=True)
     actual_reps: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    status: Mapped[str] = mapped_column(Enum("done", "skipped", name="set_status"), default="done")
+    status: Mapped[str] = mapped_column(Enum("pending", "done", "skipped", name="set_status"), default="pending")
     notes: Mapped[str | None] = mapped_column(String, nullable=True)

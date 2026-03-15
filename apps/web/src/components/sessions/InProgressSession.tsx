@@ -7,7 +7,7 @@ type LoggedSet = {
   planned_reps?: number | null
   actual_weight?: number | null
   actual_reps?: number | null
-  status: 'done' | 'skipped'
+  status: 'pending' | 'done' | 'skipped'
 }
 
 type LoggedExercise = {
@@ -31,8 +31,10 @@ function setKey(loggedExerciseId: string, setNumber: number) {
   return `${loggedExerciseId}:${setNumber}`
 }
 
-function statusBadgeClass(status: 'done' | 'skipped') {
-  return status === 'done' ? 'status-badge status-done' : 'status-badge status-skipped'
+function statusBadgeClass(status: 'pending' | 'done' | 'skipped') {
+  if (status === 'done') return 'status-badge status-done'
+  if (status === 'skipped') return 'status-badge status-skipped'
+  return 'status-badge status-planned'
 }
 
 export function InProgressSession(props: {
@@ -53,7 +55,7 @@ export function InProgressSession(props: {
   restTimer: ReactNode
 }) {
   const flatSets = useMemo(() => {
-    const rows: Array<{ exerciseId: string; loggedExerciseId: string; setNumber: number; status: 'done' | 'skipped' }> = []
+    const rows: Array<{ exerciseId: string; loggedExerciseId: string; setNumber: number; status: 'pending' | 'done' | 'skipped' }> = []
     for (const ex of props.session.logged_exercises ?? []) {
       for (const st of ex.sets ?? []) {
         rows.push({ exerciseId: ex.exercise_id, loggedExerciseId: ex.id, setNumber: st.set_number, status: st.status })
@@ -90,7 +92,8 @@ export function InProgressSession(props: {
   }, [active, props.setDrafts])
 
   const doneCount = flatSets.filter(s => s.status === 'done').length
-  const progressPct = flatSets.length ? Math.round((doneCount / flatSets.length) * 100) : 0
+  const completedCount = flatSets.filter(s => s.status === 'done' || s.status === 'skipped').length
+  const progressPct = flatSets.length ? Math.round((completedCount / flatSets.length) * 100) : 0
   const nextSetPreview = active && active.index >= 0 && active.index < flatSets.length - 1 ? flatSets[active.index + 1] : null
 
   function adjustDraftNumber(key: string, field: 'actual_weight' | 'actual_reps', delta: number) {
@@ -117,7 +120,7 @@ export function InProgressSession(props: {
       <div className="session-progress">
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div>
-            <div><strong>{doneCount}/{flatSets.length}</strong> sets completed</div>
+            <div><strong>{completedCount}/{flatSets.length}</strong> sets completed</div>
             <div className="small">{props.session.logged_exercises?.length ?? 0} exercises in this session</div>
           </div>
           <div className="status-badge status-in_progress">{progressPct}% complete</div>
@@ -139,8 +142,8 @@ export function InProgressSession(props: {
               const k = setKey(ex.id, st.set_number)
               const isActive = props.activeSetKey === k
               const draft = props.setDrafts[k] ?? {
-                actual_weight: st.actual_weight != null ? String(st.actual_weight) : (st.planned_weight != null ? String(st.planned_weight) : ''),
-                actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.planned_reps != null ? String(st.planned_reps) : ''),
+                actual_weight: st.actual_weight != null ? String(st.actual_weight) : (st.status === 'pending' ? '' : (st.planned_weight != null ? String(st.planned_weight) : '')),
+                actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.status === 'pending' ? '' : (st.planned_reps != null ? String(st.planned_reps) : '')),
                 status: st.status === 'skipped' ? 'skipped' : 'done',
               }
               const usesWeight = st.planned_weight != null || draft.actual_weight !== ''

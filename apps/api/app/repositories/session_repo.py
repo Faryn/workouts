@@ -77,7 +77,7 @@ def create_logged_set(
         set_number=set_number,
         planned_weight=planned_weight,
         planned_reps=planned_reps,
-        status="done",
+        status="pending",
     )
     db.add(ls)
     return ls
