@@ -117,6 +117,8 @@ export function useSessionLifecycle(params: {
 
   const sessionRef = useRef<SessionDetail | null>(null)
   const notesRef = useRef('')
+  const lastAutosavedNotesRef = useRef('')
+  const lastHeartbeatAutosaveAtRef = useRef(0)
   const suppressNextNotesAutosaveRef = useRef(false)
 
   useEffect(() => {
@@ -126,6 +128,11 @@ export function useSessionLifecycle(params: {
   useEffect(() => {
     notesRef.current = sessionNotes
   }, [sessionNotes])
+
+  useEffect(() => {
+    lastAutosavedNotesRef.current = session?.notes ?? ''
+    if (!session) lastHeartbeatAutosaveAtRef.current = 0
+  }, [session?.id, session?.notes])
 
   const { loadBackup, clearBackup } = useActiveSessionBackup({
     athleteId,
@@ -203,10 +210,27 @@ export function useSessionLifecycle(params: {
   async function autosaveCurrent(reason: 'interval' | 'visibility' | 'pagehide' | 'notes') {
     const active = sessionRef.current
     if (!active || active.status !== 'in_progress') return
+
+    const notesChanged = notesRef.current !== lastAutosavedNotesRef.current
+    const now = Date.now()
+    const heartbeatDue = now - lastHeartbeatAutosaveAtRef.current >= 120000
+    const shouldSave = reason === 'notes'
+      ? notesChanged
+      : reason === 'interval'
+        ? heartbeatDue && notesChanged
+        : notesChanged || heartbeatDue
+
+    if (!shouldSave) {
+      if (reason === 'interval') setAutosaveState('idle')
+      return
+    }
+
     try {
       setAutosaveState('saving')
       const saved = await api.autosaveSession(token, active.id, active.version, notesRef.current)
       setAutosaveState('ok')
+      lastAutosavedNotesRef.current = saved.notes ?? notesRef.current
+      lastHeartbeatAutosaveAtRef.current = now
       setSession(prev => prev ? {
         ...prev,
         last_saved_at: saved.last_saved_at ?? prev.last_saved_at,
@@ -233,7 +257,7 @@ export function useSessionLifecycle(params: {
 
     const id = window.setInterval(() => {
       void autosaveCurrent('interval')
-    }, 15000)
+    }, 60000)
 
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') void autosaveCurrent('visibility')

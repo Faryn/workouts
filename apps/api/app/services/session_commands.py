@@ -147,12 +147,18 @@ def autosave_session(db: Session, current_user: User, session_id: str, notes: st
     _assert_session_mutable(ws)
     _assert_session_version(ws, session_version)
 
-    session_repo.touch_session(ws)
-    if notes is not None:
-        ws.notes = notes
-    session_repo.commit(db)
-    db.refresh(ws)
-    logger.info("session.autosave", extra={"athlete_id": current_user.id, "session_id": ws.id})
+    normalized_notes = notes if notes is not None else ws.notes
+    notes_changed = normalized_notes != ws.notes
+    should_touch = notes_changed or ws.last_saved_at is None
+
+    if notes_changed:
+        ws.notes = normalized_notes
+    if should_touch:
+        session_repo.touch_session(ws)
+        session_repo.commit(db)
+        db.refresh(ws)
+        logger.info("session.autosave", extra={"athlete_id": current_user.id, "session_id": ws.id, "changed": notes_changed})
+
     return {
         "id": ws.id,
         "status": ws.status,
