@@ -30,9 +30,13 @@ async function parseApiError(res: Response): Promise<ApiError> {
 
 export async function req<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
   const extraHeaders = (init.headers ?? {}) as Record<string, string>
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...extraHeaders }
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extraHeaders }
   if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: 'same-origin' })
+  const method = init.method ?? 'GET'
+  const url = method === 'GET'
+    ? `${API_BASE}${path}${path.includes('?') ? '&' : '?'}_ts=${Date.now()}`
+    : `${API_BASE}${path}`
+  const res = await fetch(url, { ...init, headers, credentials: 'same-origin', cache: 'no-store' })
   if (!res.ok) {
     throw await parseApiError(res)
   }

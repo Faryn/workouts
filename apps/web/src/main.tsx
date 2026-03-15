@@ -15,7 +15,25 @@ import './styles.css'
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`/sw.js?v=${__APP_VERSION__}`)
-      .then((reg) => reg.update())
+      .then(async (reg) => {
+        await reg.update()
+        const regs = await navigator.serviceWorker.getRegistrations()
+        await Promise.all(regs
+          .filter(r => r.scope.startsWith(window.location.origin))
+          .map(async r => {
+            try {
+              await r.update()
+            } catch {
+              // ignore stale registration update failures
+            }
+          }))
+        if ('caches' in window) {
+          const keys = await caches.keys()
+          await Promise.all(keys
+            .filter(k => k.startsWith('workout-web-') && !k.endsWith(__APP_VERSION__))
+            .map(k => caches.delete(k)))
+        }
+      })
       .catch(() => {
         // no-op for local/dev failures
       })
