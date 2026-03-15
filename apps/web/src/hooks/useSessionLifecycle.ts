@@ -27,6 +27,8 @@ export type SessionCompletionSummary = {
   notes: string
 }
 
+export type LeaveSessionResult = 'saved' | 'saved_with_conflict_reload' | 'error'
+
 function setKey(loggedExerciseId: string, setNumber: number) {
   return `${loggedExerciseId}:${setNumber}`
 }
@@ -410,6 +412,17 @@ export function useSessionLifecycle(params: {
     }
   }
 
+  async function leaveSession(): Promise<LeaveSessionResult> {
+    const active = sessionRef.current
+    if (!active || active.status !== 'in_progress') return 'saved'
+    try {
+      await autosaveCurrent('pagehide')
+      return 'saved'
+    } catch {
+      return 'error'
+    }
+  }
+
   async function toggleHistoryDetails(sessionId: string) {
     if (historyDetails[sessionId]) {
       setHistoryDetails(prev => ({ ...prev, [sessionId]: null }))
@@ -444,6 +457,7 @@ export function useSessionLifecycle(params: {
     startFromScheduled,
     logSet,
     finish,
+    leaveSession,
     toggleHistoryDetails,
   }
 }

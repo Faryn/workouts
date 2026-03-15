@@ -52,6 +52,7 @@ export function InProgressSession(props: {
   onSkip: (loggedExerciseId: string, setNumber: number) => void
   onSelectSet: (key: string) => void
   onFinish: () => void
+  onLeave: () => void
   restTimer: ReactNode
 }) {
   const flatSets = useMemo(() => {
@@ -238,7 +239,8 @@ export function InProgressSession(props: {
         <div>{props.restTimer}</div>
       </div>
 
-      <div className="row">
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <button className="ghost" onClick={props.onLeave}>Back to dashboard</button>
         <button onClick={props.onFinish}>Finish session</button>
       </div>
     </div>

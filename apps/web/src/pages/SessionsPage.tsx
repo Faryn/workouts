@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { InProgressSession } from '../components/sessions/InProgressSession'
 import { RestTimer } from '../components/sessions/RestTimer'
 import { SessionHistoryPanel } from '../components/sessions/SessionHistoryPanel'
@@ -39,6 +39,7 @@ function autosaveMeta(session: { last_saved_at?: string | null; version?: number
 }
 
 export function SessionsPage({ token, athleteId }: { token: string; athleteId: string }) {
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [templateId, setTemplateId] = useState('')
   const [scheduledId, setScheduledId] = useState('')
@@ -87,6 +88,7 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
     startFromScheduled,
     logSet,
     finish,
+    leaveSession,
     toggleHistoryDetails,
   } = lifecycle
 
@@ -190,6 +192,12 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
           onSkip={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'skipped', false, true)}
           onSelectSet={setActiveSetKey}
           onFinish={() => void finish()}
+          onLeave={() => {
+            void leaveSession().then(() => {
+              setNotice('Session progress saved.')
+              navigate('/')
+            })
+          }}
           restTimer={
             <RestTimer
               restSeconds={rest.restSeconds}
