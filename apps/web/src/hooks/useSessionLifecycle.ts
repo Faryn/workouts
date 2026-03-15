@@ -60,6 +60,16 @@ function summarizeSession(session: SessionDetail | null, scheduledWorkoutStatus?
   }
 }
 
+function hasRemainingSets(session: SessionDetail | null) {
+  if (!session) return false
+  for (const ex of session.logged_exercises ?? []) {
+    for (const st of ex.sets ?? []) {
+      if (st.status !== 'done' && st.status !== 'skipped') return true
+    }
+  }
+  return false
+}
+
 export function useSessionLifecycle(params: {
   token: string
   athleteId: string
@@ -344,25 +354,48 @@ export function useSessionLifecycle(params: {
 
     const nextKey = goNext ? nextSetKey(loggedExerciseId, setNumber) : null
     const refreshed = await api.getSession(token, session.id).catch(() => session)
+
+    if (!hasRemainingSets(refreshed)) {
+      try {
+        await finalizeSession(refreshed)
+        return
+      } catch (e) {
+        if (e instanceof ApiError && e.code === 'session_conflict') {
+          const latest = await api.getSession(token, session.id).catch(() => null)
+          if (latest) {
+            setSession(latest)
+            initializeSetDraftsFromSession(latest, { preserveLocalDrafts: true })
+          }
+          onNotice('Session changed elsewhere. Review latest state before finishing.')
+          return
+        }
+        setErr(errorMessage(e))
+        return
+      }
+    }
+
     setSession(refreshed)
     initializeSetDraftsFromSession(refreshed, { preserveLocalDrafts: true })
     if (nextKey) setActiveSetKey(nextKey)
     if (triggerCooldown) onRestCooldown()
   }
 
+  async function finalizeSession(active: SessionDetail) {
+    const done = await api.finishSession(token, active.id, active.version)
+    setCompletionSummary(summarizeSession(active, done.scheduled_workout_status))
+    onNotice(`Session ${done.status}, scheduled=${done.scheduled_workout_status ?? 'n/a'}`)
+    setSession(null)
+    setSessionNotes('')
+    setDraftValues({})
+    setActiveSetKey(null)
+    clearBackup()
+    await loadAll()
+  }
+
   async function finish() {
     if (!session) return
-    const snapshot = session
     try {
-      const done = await api.finishSession(token, session.id, session.version)
-      setCompletionSummary(summarizeSession(snapshot, done.scheduled_workout_status))
-      onNotice(`Session ${done.status}, scheduled=${done.scheduled_workout_status ?? 'n/a'}`)
-      setSession(null)
-      setSessionNotes('')
-      setDraftValues({})
-      setActiveSetKey(null)
-      clearBackup()
-      await loadAll()
+      await finalizeSession(session)
     } catch (e) {
       if (e instanceof ApiError && e.code === 'session_conflict') {
         const latest = await api.getSession(token, session.id).catch(() => null)
