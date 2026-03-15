@@ -76,6 +76,7 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
     setDraftValues,
     activeSetKey,
     setActiveSetKey,
+    moveActiveSet,
     autosaveState,
     historyDetails,
     sessionNotes,
@@ -191,6 +192,8 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
           onDone={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'done', true, true)}
           onSkip={(loggedExerciseId, setNumber) => void logSet(loggedExerciseId, setNumber, 'skipped', false, true)}
           onSelectSet={setActiveSetKey}
+          onMovePrev={() => moveActiveSet(-1)}
+          onMoveNext={() => moveActiveSet(1)}
           onFinish={() => void finish()}
           onLeave={() => {
             void leaveSession().then(() => {

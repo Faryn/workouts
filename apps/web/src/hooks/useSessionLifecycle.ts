@@ -298,17 +298,32 @@ export function useSessionLifecycle(params: {
     }
   }
 
-  function nextSetKey(currentLoggedExerciseId: string, currentSetNumber: number): string | null {
-    if (!session) return null
-    const flat: Array<{ key: string; loggedExerciseId: string; setNumber: number }> = []
-    for (const ex of session.logged_exercises ?? []) {
+  function orderedSetKeys(sourceSession: SessionDetail | null = session) {
+    if (!sourceSession) return [] as string[]
+    const keys: string[] = []
+    for (const ex of sourceSession.logged_exercises ?? []) {
       for (const st of ex.sets ?? []) {
-        flat.push({ key: setKey(ex.id, st.set_number), loggedExerciseId: ex.id, setNumber: st.set_number })
+        keys.push(setKey(ex.id, st.set_number))
       }
     }
-    const idx = flat.findIndex(x => x.loggedExerciseId === currentLoggedExerciseId && x.setNumber === currentSetNumber)
+    return keys
+  }
+
+  function nextSetKey(currentLoggedExerciseId: string, currentSetNumber: number): string | null {
+    const flat = orderedSetKeys()
+    const current = setKey(currentLoggedExerciseId, currentSetNumber)
+    const idx = flat.findIndex(x => x === current)
     if (idx < 0 || idx >= flat.length - 1) return null
-    return flat[idx + 1].key
+    return flat[idx + 1] ?? null
+  }
+
+  function moveActiveSet(direction: -1 | 1) {
+    if (!activeSetKey) return
+    const flat = orderedSetKeys()
+    const idx = flat.findIndex(x => x === activeSetKey)
+    if (idx < 0) return
+    const next = flat[idx + direction]
+    if (next) setActiveSetKey(next)
   }
 
   async function logSet(loggedExerciseId: string, setNumber: number, status: 'done' | 'skipped', triggerCooldown: boolean, goNext = true) {
@@ -445,6 +460,7 @@ export function useSessionLifecycle(params: {
     setDraftValues,
     activeSetKey,
     setActiveSetKey,
+    moveActiveSet,
     autosaveState,
     historyDetails,
     sessionNotes,

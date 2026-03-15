@@ -51,6 +51,8 @@ export function InProgressSession(props: {
   onDone: (loggedExerciseId: string, setNumber: number) => void
   onSkip: (loggedExerciseId: string, setNumber: number) => void
   onSelectSet: (key: string) => void
+  onMovePrev: () => void
+  onMoveNext: () => void
   onFinish: () => void
   onLeave: () => void
   restTimer: ReactNode
@@ -95,6 +97,7 @@ export function InProgressSession(props: {
   const doneCount = flatSets.filter(s => s.status === 'done').length
   const completedCount = flatSets.filter(s => s.status === 'done' || s.status === 'skipped').length
   const progressPct = flatSets.length ? Math.round((completedCount / flatSets.length) * 100) : 0
+  const prevSetPreview = active && active.index > 0 ? flatSets[active.index - 1] : null
   const nextSetPreview = active && active.index >= 0 && active.index < flatSets.length - 1 ? flatSets[active.index + 1] : null
 
   function adjustDraftNumber(key: string, field: 'actual_weight' | 'actual_reps', delta: number) {
@@ -127,9 +130,11 @@ export function InProgressSession(props: {
           <div className="status-badge status-in_progress">{progressPct}% complete</div>
         </div>
         <div className="progress-track"><div className="progress-bar" style={{ width: `${progressPct}%` }} /></div>
-        {nextSetPreview && (
+        {(prevSetPreview || nextSetPreview) && (
           <div className="small" style={{ marginTop: 8 }}>
-            Next: {props.exerciseNameById[nextSetPreview.exerciseId] ?? nextSetPreview.exerciseId} · set {nextSetPreview.setNumber}
+            {prevSetPreview && <>Previous: {props.exerciseNameById[prevSetPreview.exerciseId] ?? prevSetPreview.exerciseId} · set {prevSetPreview.setNumber}</>}
+            {prevSetPreview && nextSetPreview && ' · '}
+            {nextSetPreview && <>Next: {props.exerciseNameById[nextSetPreview.exerciseId] ?? nextSetPreview.exerciseId} · set {nextSetPreview.setNumber}</>}
           </div>
         )}
       </div>
@@ -227,6 +232,11 @@ export function InProgressSession(props: {
                 placeholder="How did this session feel?"
                 style={{ width: '100%' }}
               />
+            </div>
+
+            <div className="row" style={{ gap: 10, marginBottom: 8 }}>
+              <button style={{ flex: 1 }} onClick={props.onMovePrev} disabled={!prevSetPreview}>Previous set</button>
+              <button style={{ flex: 1 }} onClick={props.onMoveNext} disabled={!nextSetPreview}>Next set</button>
             </div>
 
             <div className="row" style={{ gap: 10, marginBottom: 8 }}>
