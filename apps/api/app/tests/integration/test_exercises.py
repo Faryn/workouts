@@ -12,18 +12,18 @@ def test_exercises_requires_auth(client):
     assert res.status_code == 401
 
 
-def test_exercises_returns_global_and_owned_only(client, seeded_user, seeded_exercises):
+def test_exercises_returns_global_only_pool(client, seeded_user, seeded_exercises):
     headers = _auth(client, seeded_user.email, 'secret123')
     res = client.get('/v1/exercises/', headers=headers)
     assert res.status_code == 200
 
     names = {x['name'] for x in res.json()}
     assert 'Bench Press' in names
-    assert 'My Custom Curl' in names
+    assert 'My Custom Curl' not in names
     assert 'Other User Exercise' not in names
 
 
-def test_athlete_can_create_patch_delete_own_exercise(client, seeded_user):
+def test_any_user_created_exercise_becomes_global(client, seeded_user):
     headers = _auth(client, seeded_user.email, 'secret123')
 
     created = client.post('/v1/exercises/', json={
@@ -33,16 +33,12 @@ def test_athlete_can_create_patch_delete_own_exercise(client, seeded_user):
     }, headers=headers)
     assert created.status_code == 200
     body = created.json()
-    assert body['owner_scope'] == 'athlete'
-    assert body['owner_id'] == seeded_user.id
+    assert body['owner_scope'] == 'global'
+    assert body['owner_id'] is None
 
-    patched = client.patch(f"/v1/exercises/{body['id']}", json={'notes': 'Strict form only'}, headers=headers)
-    assert patched.status_code == 200
-    assert patched.json()['notes'] == 'Strict form only'
-
-    deleted = client.delete(f"/v1/exercises/{body['id']}", headers=headers)
-    assert deleted.status_code == 200
-    assert deleted.json()['ok'] is True
+    listed = client.get('/v1/exercises/', headers=headers)
+    assert listed.status_code == 200
+    assert 'Cable Lateral Raise' in {x['name'] for x in listed.json()}
 
 
 def test_athlete_cannot_modify_global_exercise(client, seeded_user, seeded_exercises):

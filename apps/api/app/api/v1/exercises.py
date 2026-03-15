@@ -31,8 +31,6 @@ def create_exercise(
         exercise_type=payload.type,
         equipment=payload.equipment,
         notes=payload.notes,
-        owner_scope=payload.owner_scope,
-        owner_id=payload.owner_id,
     )
 
 
