@@ -75,6 +75,7 @@ export function InProgressSession(props: {
             exerciseName: props.exerciseNameById[ex.exercise_id] ?? ex.exercise_id,
             usesWeight: st.planned_weight != null || st.actual_weight != null,
             index,
+            exerciseSetCount: (ex.sets ?? []).length,
           }
         }
       }
@@ -175,7 +176,7 @@ export function InProgressSession(props: {
           <>
             <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <strong>{active.exerciseName}</strong>
-              <span className="small">Set {active.setNumber} of {flatSets.length}</span>
+              <span className="small">Set {active.setNumber} of {active.exerciseSetCount}</span>
             </div>
 
             <div className="grid-2" style={{ marginBottom: 8 }}>
