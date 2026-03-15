@@ -88,7 +88,7 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
         api.listScheduled(token, athleteId),
       ])
       setCalendarItems(calendar)
-      setInProgress(latest)
+      setInProgress(latest ?? null)
       setTemplates(templatesList)
       setItems(scheduled)
       if (!templateId && templatesList[0]) setTemplateId(templatesList[0].id)
