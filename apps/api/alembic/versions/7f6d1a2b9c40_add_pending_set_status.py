@@ -1,7 +1,7 @@
 """add pending set status
 
 Revision ID: 7f6d1a2b9c40
-Revises: c7b6c3b1d2e4
+Revises: f2a1b6d9c4e7
 Create Date: 2026-03-15 20:40:00.000000
 """
 
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '7f6d1a2b9c40'
-down_revision = 'c7b6c3b1d2e4'
+down_revision = 'f2a1b6d9c4e7'
 branch_labels = None
 depends_on = None
 
