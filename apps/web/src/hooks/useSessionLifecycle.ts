@@ -184,6 +184,12 @@ export function useSessionLifecycle(params: {
       if (latest) {
         setSession(latest)
         initializeSetDraftsFromSession(latest, { preserveLocalDrafts: true })
+      } else {
+        setSession(null)
+        setDraftValues({})
+        setActiveSetKey(null)
+        setSessionNotes('')
+        clearBackup()
       }
       const planned = s.filter(x => x.status === 'planned')
       setScheduledItems(planned)
