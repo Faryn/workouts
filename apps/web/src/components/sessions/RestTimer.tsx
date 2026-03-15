@@ -5,6 +5,7 @@ export function RestTimer(props: {
   restRemaining: number
   restRunning: boolean
   restFinishedAt?: number | null
+  countdownMark?: number | null
   onSetSeconds: (n: number) => void
   onStart: () => void
   onRestart: () => void
@@ -21,6 +22,12 @@ export function RestTimer(props: {
           {props.restRunning ? 'Running' : justFinished ? 'Go' : 'Ready'}
         </span>
       </div>
+      {props.restRunning && props.countdownMark && props.countdownMark <= 3 && (
+        <div className="notice-banner">
+          <strong>{props.countdownMark}…</strong>
+          <span className="small">Next set starts soon</span>
+        </div>
+      )}
       {justFinished && (
         <div className="notice-banner">
           <strong>Rest complete — ready for the next set.</strong>

@@ -207,6 +207,7 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
               restRemaining={rest.restRemaining}
               restRunning={rest.restRunning}
               restFinishedAt={rest.restFinishedAt}
+              countdownMark={rest.countdownMark}
               onSetSeconds={rest.applyDefault}
               onStart={rest.start}
               onRestart={rest.restart}
