@@ -206,10 +206,12 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
               restSeconds={rest.restSeconds}
               restRemaining={rest.restRemaining}
               restRunning={rest.restRunning}
+              restFinishedAt={rest.restFinishedAt}
               onSetSeconds={rest.applyDefault}
               onStart={rest.start}
               onRestart={rest.restart}
               onPause={rest.pause}
+              onClearFinishedCue={rest.clearFinishedCue}
             />
           }
         />

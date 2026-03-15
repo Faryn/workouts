@@ -4,19 +4,29 @@ export function RestTimer(props: {
   restSeconds: number
   restRemaining: number
   restRunning: boolean
+  restFinishedAt?: number | null
   onSetSeconds: (n: number) => void
   onStart: () => void
   onRestart: () => void
   onPause: () => void
+  onClearFinishedCue?: () => void
 }) {
+  const justFinished = !!props.restFinishedAt && !props.restRunning && props.restRemaining === 0
+
   return (
     <div className="stack" style={{ marginBottom: 8 }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <strong>Rest timer: {formatClock(props.restRemaining)}</strong>
-        <span className={`status-badge ${props.restRunning ? 'status-in_progress' : 'status-planned'}`}>
-          {props.restRunning ? 'Running' : 'Ready'}
+        <span className={`status-badge ${props.restRunning ? 'status-in_progress' : justFinished ? 'status-completed' : 'status-planned'}`}>
+          {props.restRunning ? 'Running' : justFinished ? 'Go' : 'Ready'}
         </span>
       </div>
+      {justFinished && (
+        <div className="notice-banner">
+          <strong>Rest complete — ready for the next set.</strong>
+          {props.onClearFinishedCue && <button className="ghost" onClick={props.onClearFinishedCue}>Dismiss</button>}
+        </div>
+      )}
       <div className="row" style={{ alignItems: 'center' }}>
         <input
           type="number"
