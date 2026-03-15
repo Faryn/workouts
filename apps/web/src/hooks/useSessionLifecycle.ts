@@ -105,6 +105,7 @@ export function useSessionLifecycle(params: {
 
   const sessionRef = useRef<SessionDetail | null>(null)
   const notesRef = useRef('')
+  const suppressNextNotesAutosaveRef = useRef(false)
 
   useEffect(() => {
     sessionRef.current = session
@@ -126,10 +127,12 @@ export function useSessionLifecycle(params: {
     if (!s) return
     const next: Record<string, SetDraft> = {}
     let firstKey: string | null = null
+    let firstUnfinishedKey: string | null = null
     for (const ex of s.logged_exercises ?? []) {
       for (const st of ex.sets ?? []) {
         const k = setKey(ex.id, st.set_number)
         if (!firstKey) firstKey = k
+        if (!firstUnfinishedKey && st.status !== 'done' && st.status !== 'skipped') firstUnfinishedKey = k
         next[k] = {
           actual_weight: st.actual_weight != null ? String(st.actual_weight) : (st.status === 'pending' ? '' : (st.planned_weight != null ? String(st.planned_weight) : '')),
           actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.status === 'pending' ? '' : (st.planned_reps != null ? String(st.planned_reps) : '')),
@@ -138,17 +141,19 @@ export function useSessionLifecycle(params: {
       }
     }
 
+    suppressNextNotesAutosaveRef.current = true
+    const targetKey = firstUnfinishedKey ?? firstKey
     const backup = opts?.preserveLocalDrafts ? loadBackup() : null
     if (backup && backup.sessionId === s.id) {
       setDraftValues({ ...next, ...backup.draftValues })
-      setActiveSetKey(backup.activeSetKey ?? firstKey)
+      setActiveSetKey(targetKey)
       setSessionNotes(backup.notes ?? (s.notes ?? ''))
       onNotice('Recovered local draft for in-progress session.')
       return
     }
 
     setDraftValues(next)
-    setActiveSetKey(firstKey)
+    setActiveSetKey(targetKey)
     setSessionNotes(s.notes ?? '')
   }
 
@@ -237,11 +242,15 @@ export function useSessionLifecycle(params: {
 
   useEffect(() => {
     if (!session || session.status !== 'in_progress') return
+    if (suppressNextNotesAutosaveRef.current) {
+      suppressNextNotesAutosaveRef.current = false
+      return
+    }
     const id = window.setTimeout(() => {
       void autosaveCurrent('notes')
     }, 1200)
     return () => window.clearTimeout(id)
-  }, [sessionNotes])
+  }, [session, sessionNotes])
 
   async function startFromTemplate() {
     setErr(null)
