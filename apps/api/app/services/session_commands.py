@@ -71,7 +71,7 @@ def start_session(db: Session, current_user: User, scheduled_workout_id: str | N
     if not template_rows:
         raise AppError(code="template_empty", message="Template has no exercises", status_code=400)
 
-    ws = session_repo.create_session(db, current_user.id, scheduled.id if scheduled else None)
+    ws = session_repo.create_session(db, current_user.id, scheduled.id if scheduled else None, commit=False)
 
     for row in template_rows:
         le = session_repo.create_logged_exercise(
@@ -80,6 +80,7 @@ def start_session(db: Session, current_user: User, scheduled_workout_id: str | N
             exercise_id=row.exercise_id,
             sort_order=row.sort_order,
             template_exercise_id=row.id,
+            commit=False,
         )
         for set_no in range(1, row.planned_sets + 1):
             session_repo.create_logged_set(
@@ -89,7 +90,9 @@ def start_session(db: Session, current_user: User, scheduled_workout_id: str | N
                 planned_weight=row.planned_weight,
                 planned_reps=row.planned_reps,
             )
-        session_repo.commit(db)
+
+    session_repo.commit(db)
+    db.refresh(ws)
 
     logger.info("session.start", extra={"athlete_id": current_user.id, "session_id": ws.id, "scheduled_workout_id": ws.scheduled_workout_id})
     return serialize_session(db, ws)

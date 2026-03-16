@@ -27,15 +27,17 @@ def get_session(db: Session, session_id: str) -> WorkoutSession | None:
     return db.get(WorkoutSession, session_id)
 
 
-def create_session(db: Session, athlete_id: str, scheduled_workout_id: str | None) -> WorkoutSession:
+def create_session(db: Session, athlete_id: str, scheduled_workout_id: str | None, commit: bool = True) -> WorkoutSession:
     ws = WorkoutSession(
         athlete_id=athlete_id,
         scheduled_workout_id=scheduled_workout_id,
         status="in_progress",
     )
     db.add(ws)
-    db.commit()
-    db.refresh(ws)
+    db.flush()
+    if commit:
+        db.commit()
+        db.refresh(ws)
     return ws
 
 
@@ -52,6 +54,7 @@ def create_logged_exercise(
     exercise_id: str,
     sort_order: int,
     template_exercise_id: str | None,
+    commit: bool = True,
 ) -> LoggedExercise:
     le = LoggedExercise(
         session_id=session_id,
@@ -60,8 +63,10 @@ def create_logged_exercise(
         template_exercise_id=template_exercise_id,
     )
     db.add(le)
-    db.commit()
-    db.refresh(le)
+    db.flush()
+    if commit:
+        db.commit()
+        db.refresh(le)
     return le
 
 
