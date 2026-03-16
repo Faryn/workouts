@@ -133,6 +133,7 @@ export type SessionDetail = {
   notes?: string | null
   started_at?: string | null
   ended_at?: string | null
+  duration_seconds?: number | null
   last_saved_at?: string | null
   updated_at?: string | null
   version: number
@@ -175,5 +176,8 @@ export type FinishSessionResponse = {
   id: string
   status: string
   scheduled_workout_status?: string | null
+  started_at?: string | null
+  ended_at?: string | null
+  duration_seconds?: number | null
   version?: number | null
 }

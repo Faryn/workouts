@@ -1,6 +1,18 @@
+from datetime import timezone
+
 from sqlalchemy.orm import Session
 
 from app.repositories import session_repo
+
+
+def _iso_utc(value):
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    else:
+        value = value.astimezone(timezone.utc)
+    return value.isoformat().replace("+00:00", "Z")
 
 
 def serialize_set(s) -> dict:
@@ -35,10 +47,11 @@ def serialize_session(db: Session, ws) -> dict:
         "scheduled_workout_id": ws.scheduled_workout_id,
         "status": ws.status,
         "notes": ws.notes,
-        "started_at": ws.started_at.isoformat() if ws.started_at else None,
-        "ended_at": ws.ended_at.isoformat() if ws.ended_at else None,
-        "last_saved_at": ws.last_saved_at.isoformat() if ws.last_saved_at else None,
-        "updated_at": ws.updated_at.isoformat() if ws.updated_at else None,
+        "started_at": _iso_utc(ws.started_at),
+        "ended_at": _iso_utc(ws.ended_at),
+        "duration_seconds": ws.duration_seconds,
+        "last_saved_at": _iso_utc(ws.last_saved_at),
+        "updated_at": _iso_utc(ws.updated_at),
         "version": ws.version,
         "logged_exercises": out_ex,
     }

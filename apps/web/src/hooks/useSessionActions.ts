@@ -92,7 +92,13 @@ export function useSessionActions(params: {
 
   async function finalizeSession(active: SessionDetail) {
     const done = await api.finishSession(token, active.id, active.version)
-    setCompletionSummary(summarizeSession(active, done.scheduled_workout_status))
+    setCompletionSummary(summarizeSession({
+      ...active,
+      status: done.status,
+      started_at: done.started_at ?? active.started_at,
+      ended_at: done.ended_at ?? active.ended_at,
+      duration_seconds: done.duration_seconds ?? active.duration_seconds ?? null,
+    }, done.scheduled_workout_status))
     onNotice(`Session ${done.status}, scheduled=${done.scheduled_workout_status ?? 'n/a'}`)
     setSession(null)
     clearDraftState()

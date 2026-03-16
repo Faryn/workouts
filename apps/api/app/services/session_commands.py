@@ -201,4 +201,12 @@ def finish_session(db: Session, current_user: User, session_id: str, session_ver
     session_repo.commit(db)
     db.refresh(ws)
     logger.info("session.finish", extra={"athlete_id": current_user.id, "session_id": ws.id, "scheduled_workout_status": scheduled_status})
-    return {"id": ws.id, "status": ws.status, "scheduled_workout_status": scheduled_status, "version": ws.version}
+    return {
+        "id": ws.id,
+        "status": ws.status,
+        "scheduled_workout_status": scheduled_status,
+        "started_at": started_at.isoformat().replace("+00:00", "Z") if started_at else None,
+        "ended_at": ended_at.isoformat().replace("+00:00", "Z"),
+        "duration_seconds": ws.duration_seconds,
+        "version": ws.version,
+    }

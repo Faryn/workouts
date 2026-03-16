@@ -31,8 +31,8 @@ export function summarizeSession(session: SessionDetail | null, scheduledWorkout
     }
   }
 
-  let durationSeconds: number | null = null
-  if (session?.started_at) {
+  let durationSeconds: number | null = session?.duration_seconds ?? null
+  if (durationSeconds == null && session?.started_at) {
     const started = new Date(session.started_at).getTime()
     const ended = Date.now()
     if (!Number.isNaN(started)) durationSeconds = Math.max(0, Math.round((ended - started) / 1000))

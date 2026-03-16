@@ -1,4 +1,16 @@
+from datetime import timezone
+
 from app.repositories import session_repo
+
+
+def _iso_utc(value):
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    else:
+        value = value.astimezone(timezone.utc)
+    return value.isoformat().replace("+00:00", "Z")
 
 
 def serialize_session_summary(db, ws) -> dict:
@@ -8,8 +20,8 @@ def serialize_session_summary(db, ws) -> dict:
         "athlete_id": ws.athlete_id,
         "scheduled_workout_id": ws.scheduled_workout_id,
         "status": ws.status,
-        "started_at": ws.started_at.isoformat() if ws.started_at else None,
-        "ended_at": ws.ended_at.isoformat() if ws.ended_at else None,
+        "started_at": _iso_utc(ws.started_at),
+        "ended_at": _iso_utc(ws.ended_at),
         "duration_seconds": ws.duration_seconds,
         "exercise_count": logged_ex_count,
     }
