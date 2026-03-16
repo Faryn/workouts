@@ -41,6 +41,11 @@ export function findActiveSet(params: {
           setNumber: st.set_number,
           exerciseName: exerciseNameById[ex.exercise_id] ?? ex.exercise_id,
           usesWeight: st.planned_weight != null || st.actual_weight != null,
+          plannedWeight: st.planned_weight,
+          plannedReps: st.planned_reps,
+          actualWeight: st.actual_weight,
+          actualReps: st.actual_reps,
+          status: st.status,
           index,
           exerciseSetCount: (ex.sets ?? []).length,
         }

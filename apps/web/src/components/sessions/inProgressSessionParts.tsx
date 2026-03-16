@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 type LoggedSet = {
   set_number: number
   planned_weight?: number | null
@@ -80,14 +82,8 @@ export function CurrentSetEditor(props: {
   onMovePrev: () => void
   onMoveNext: () => void
 }) {
-  function adjustDraftNumber(key: string, field: 'actual_weight' | 'actual_reps', delta: number) {
-    const current = props.activeDraft
-    const raw = current[field]
-    const base = raw === '' ? 0 : Number(raw)
-    const next = Math.max(0, base + delta)
-    props.onChangeDraft(key, { ...current, [field]: String(Number.isInteger(next) ? next : Number(next.toFixed(1))) })
-  }
-
+  const [editingWeight, setEditingWeight] = useState(false)
+  const [editingReps, setEditingReps] = useState(false)
   const key = setKey(props.active.loggedExerciseId, props.active.setNumber)
 
   return (
@@ -99,15 +95,19 @@ export function CurrentSetEditor(props: {
             <input
               value={props.activeDraft.actual_weight}
               onChange={e => props.onChangeDraft(key, { ...props.activeDraft, actual_weight: e.target.value })}
+              onFocus={() => setEditingWeight(true)}
+              onBlur={() => window.setTimeout(() => setEditingWeight(false), 120)}
               aria-label="Weight"
               placeholder="kg"
               style={{ width: '100%' }}
             />
-            <div className="quick-stepper">
-              <button type="button" onClick={() => adjustDraftNumber(key, 'actual_weight', -2.5)}>-2.5</button>
-              <button type="button" onClick={() => adjustDraftNumber(key, 'actual_weight', 2.5)}>+2.5</button>
-              <button type="button" onClick={() => adjustDraftNumber(key, 'actual_weight', 5)}>+5</button>
-            </div>
+            {editingWeight && (
+              <div className="quick-stepper">
+                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => props.onChangeDraft(key, { ...props.activeDraft, actual_weight: String(Math.max(0, (Number(props.activeDraft.actual_weight || 0) - 2.5)).toFixed(1)).replace(/\.0$/, '') })}>-2.5</button>
+                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => props.onChangeDraft(key, { ...props.activeDraft, actual_weight: String(Math.max(0, Number(props.activeDraft.actual_weight || 0) + 2.5)).replace(/\.0$/, '') })}>+2.5</button>
+                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => props.onChangeDraft(key, { ...props.activeDraft, actual_weight: String(Math.max(0, Number(props.activeDraft.actual_weight || 0) + 5)).replace(/\.0$/, '') })}>+5</button>
+              </div>
+            )}
           </div>
         )}
         <div>
@@ -115,15 +115,19 @@ export function CurrentSetEditor(props: {
           <input
             value={props.activeDraft.actual_reps}
             onChange={e => props.onChangeDraft(key, { ...props.activeDraft, actual_reps: e.target.value })}
+            onFocus={() => setEditingReps(true)}
+            onBlur={() => window.setTimeout(() => setEditingReps(false), 120)}
             aria-label="Repetitions"
             placeholder="reps"
             style={{ width: '100%' }}
           />
-          <div className="quick-stepper">
-            <button type="button" onClick={() => adjustDraftNumber(key, 'actual_reps', -1)}>-1</button>
-            <button type="button" onClick={() => adjustDraftNumber(key, 'actual_reps', 1)}>+1</button>
-            <button type="button" onClick={() => adjustDraftNumber(key, 'actual_reps', 2)}>+2</button>
-          </div>
+          {editingReps && (
+            <div className="quick-stepper">
+              <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => props.onChangeDraft(key, { ...props.activeDraft, actual_reps: String(Math.max(0, Number(props.activeDraft.actual_reps || 0) - 1)) })}>-1</button>
+              <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => props.onChangeDraft(key, { ...props.activeDraft, actual_reps: String(Math.max(0, Number(props.activeDraft.actual_reps || 0) + 1)) })}>+1</button>
+              <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => props.onChangeDraft(key, { ...props.activeDraft, actual_reps: String(Math.max(0, Number(props.activeDraft.actual_reps || 0) + 2)) })}>+2</button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -49,7 +49,12 @@ export function InProgressSession(props: {
   const activeDraft = useMemo(() => {
     if (!active) return null
     const k = setKey(active.loggedExerciseId, active.setNumber)
-    return props.setDrafts[k] ?? { actual_weight: '', actual_reps: '', status: 'done' as const }
+    const draft = props.setDrafts[k]
+    return {
+      actual_weight: draft?.actual_weight !== '' ? draft?.actual_weight : (active.actualWeight != null ? String(active.actualWeight) : (active.plannedWeight != null ? String(active.plannedWeight) : '')),
+      actual_reps: draft?.actual_reps !== '' ? draft?.actual_reps : (active.actualReps != null ? String(active.actualReps) : (active.plannedReps != null ? String(active.plannedReps) : '')),
+      status: draft?.status ?? (active.status === 'skipped' ? 'skipped' : 'done'),
+    }
   }, [active, props.setDrafts])
 
   const { completedCount, progressPct } = useMemo(() => summarizeProgress(flatSets), [flatSets])
