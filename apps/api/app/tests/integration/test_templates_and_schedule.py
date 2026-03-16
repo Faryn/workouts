@@ -201,3 +201,85 @@ def test_schedule_pattern_interval_and_weekday(client, seeded_user):
     assert weekday.status_code == 200
     weekday_dates = [x['date'] for x in weekday.json()]
     assert weekday_dates == ['2026-03-03', '2026-03-10', '2026-03-17']
+
+
+
+def test_schedule_bulk_move_skip_and_replace_template(client, seeded_user):
+    headers = _auth(client, seeded_user.email, 'secret123')
+    original = client.post('/v1/templates/', json={'name': 'Bulk Original'}, headers=headers).json()
+    replacement = client.post('/v1/templates/', json={'name': 'Bulk Replacement'}, headers=headers).json()
+
+    for day in ['2026-03-05', '2026-03-06', '2026-03-07']:
+        created = client.post('/v1/scheduled-workouts/', json={
+            'athlete_id': seeded_user.id,
+            'template_id': original['id'],
+            'date': day,
+        }, headers=headers)
+        assert created.status_code == 200
+
+    moved = client.post('/v1/scheduled-workouts/bulk/move', json={
+        'athlete_id': seeded_user.id,
+        'from_date': '2026-03-05',
+        'to_date': '2026-03-06',
+        'shift_days': 7,
+    }, headers=headers)
+    assert moved.status_code == 200
+    moved_body = moved.json()
+    assert moved_body['matched_count'] == 2
+    assert moved_body['created'] == []
+    assert [x['date'] for x in moved_body['updated']] == ['2026-03-12', '2026-03-13']
+
+    replaced = client.post('/v1/scheduled-workouts/bulk/replace-template', json={
+        'athlete_id': seeded_user.id,
+        'from_date': '2026-03-12',
+        'to_date': '2026-03-13',
+        'template_id': replacement['id'],
+    }, headers=headers)
+    assert replaced.status_code == 200
+    replaced_body = replaced.json()
+    assert replaced_body['matched_count'] == 2
+    assert len(replaced_body['updated']) == 2
+    assert len(replaced_body['created']) == 2
+    assert all(x['status'] == 'skipped' for x in replaced_body['updated'])
+    assert all(x['template_id'] == replacement['id'] and x['status'] == 'planned' for x in replaced_body['created'])
+
+    skipped = client.post('/v1/scheduled-workouts/bulk/skip', json={
+        'athlete_id': seeded_user.id,
+        'from_date': '2026-03-07',
+        'to_date': '2026-03-13',
+    }, headers=headers)
+    assert skipped.status_code == 200
+    skipped_body = skipped.json()
+    assert skipped_body['matched_count'] == 3
+    assert skipped_body['created'] == []
+    assert all(x['status'] == 'skipped' for x in skipped_body['updated'])
+
+    listed = client.get(f'/v1/scheduled-workouts/?athlete_id={seeded_user.id}', headers=headers)
+    assert listed.status_code == 200
+    all_items = listed.json()
+    planned_items = [x for x in all_items if x['status'] == 'planned']
+    assert planned_items == []
+    skipped_dates = sorted(x['date'] for x in all_items if x['status'] == 'skipped')
+    assert skipped_dates == ['2026-03-07', '2026-03-12', '2026-03-12', '2026-03-13', '2026-03-13']
+
+
+
+def test_schedule_bulk_range_validation_and_missing_template(client, seeded_user):
+    headers = _auth(client, seeded_user.email, 'secret123')
+
+    invalid_range = client.post('/v1/scheduled-workouts/bulk/skip', json={
+        'athlete_id': seeded_user.id,
+        'from_date': '2026-03-10',
+        'to_date': '2026-03-09',
+    }, headers=headers)
+    assert invalid_range.status_code == 400
+    assert invalid_range.json()['error']['code'] == 'invalid_date_range'
+
+    missing_template = client.post('/v1/scheduled-workouts/bulk/replace-template', json={
+        'athlete_id': seeded_user.id,
+        'from_date': '2026-03-10',
+        'to_date': '2026-03-11',
+        'template_id': 'missing-template',
+    }, headers=headers)
+    assert missing_template.status_code == 404
+    assert missing_template.json()['error']['code'] == 'template_not_found'

@@ -6,7 +6,16 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.core.db import get_db
 from app.models.user import User
-from app.schemas.schedule import MoveCopyPayload, ScheduledCreate, ScheduledOut, ScheduledPatternCreate
+from app.schemas.schedule import (
+    MoveCopyPayload,
+    ScheduledBulkMovePayload,
+    ScheduledBulkReplaceTemplatePayload,
+    ScheduledBulkResult,
+    ScheduledBulkRangeBase,
+    ScheduledCreate,
+    ScheduledOut,
+    ScheduledPatternCreate,
+)
 from app.services import schedule_service
 
 router = APIRouter()
@@ -39,6 +48,53 @@ def create_scheduled(
     current_user: User = Depends(get_current_user),
 ):
     return schedule_service.create_scheduled(db, current_user, payload.athlete_id, payload.template_id, payload.date)
+
+
+@router.post('/bulk/move', response_model=ScheduledBulkResult)
+def bulk_move_scheduled(
+    payload: ScheduledBulkMovePayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return schedule_service.bulk_move_scheduled(
+        db,
+        current_user,
+        athlete_id=payload.athlete_id,
+        from_date=payload.from_date,
+        to_date=payload.to_date,
+        shift_days=payload.shift_days,
+    )
+
+
+@router.post('/bulk/replace-template', response_model=ScheduledBulkResult)
+def bulk_replace_template_scheduled(
+    payload: ScheduledBulkReplaceTemplatePayload,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return schedule_service.bulk_replace_template_scheduled(
+        db,
+        current_user,
+        athlete_id=payload.athlete_id,
+        from_date=payload.from_date,
+        to_date=payload.to_date,
+        template_id=payload.template_id,
+    )
+
+
+@router.post('/bulk/skip', response_model=ScheduledBulkResult)
+def bulk_skip_scheduled(
+    payload: ScheduledBulkRangeBase,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return schedule_service.bulk_skip_scheduled(
+        db,
+        current_user,
+        athlete_id=payload.athlete_id,
+        from_date=payload.from_date,
+        to_date=payload.to_date,
+    )
 
 
 @router.post('/{scheduled_id}/move', response_model=ScheduledOut)

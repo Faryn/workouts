@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
+from app.models.schedule import ScheduledWorkout
 from app.models.template import WorkoutTemplate
 from app.models.user import User
 from app.repositories import schedule_repo
@@ -126,3 +127,93 @@ def create_scheduled_pattern(
         return out
 
     return []
+
+
+
+def _get_bulk_scope(db: Session, current_user: User, athlete_id: str, from_date: date, to_date: date) -> list[ScheduledWorkout]:
+    ensure_schedule_access(db, current_user, athlete_id)
+    if to_date < from_date:
+        raise AppError(code='invalid_date_range', message='to_date must be on or after from_date', status_code=400)
+    return schedule_repo.list_planned_in_range(db, athlete_id, from_date, to_date)
+
+
+
+def bulk_move_scheduled(
+    db: Session,
+    current_user: User,
+    athlete_id: str,
+    from_date: date,
+    to_date: date,
+    shift_days: int,
+) -> dict:
+    rows = _get_bulk_scope(db, current_user, athlete_id, from_date, to_date)
+    for row in rows:
+        row.date = row.date + timedelta(days=shift_days)
+    updated = schedule_repo.save_many(db, rows)
+    return {
+        'updated': [serialize_scheduled(row) for row in updated],
+        'created': [],
+        'matched_count': len(rows),
+    }
+
+
+
+def bulk_skip_scheduled(
+    db: Session,
+    current_user: User,
+    athlete_id: str,
+    from_date: date,
+    to_date: date,
+) -> dict:
+    rows = _get_bulk_scope(db, current_user, athlete_id, from_date, to_date)
+    for row in rows:
+        row.status = 'skipped'
+    updated = schedule_repo.save_many(db, rows)
+    return {
+        'updated': [serialize_scheduled(row) for row in updated],
+        'created': [],
+        'matched_count': len(rows),
+    }
+
+
+
+def bulk_replace_template_scheduled(
+    db: Session,
+    current_user: User,
+    athlete_id: str,
+    from_date: date,
+    to_date: date,
+    template_id: str,
+) -> dict:
+    rows = _get_bulk_scope(db, current_user, athlete_id, from_date, to_date)
+    template = db.get(WorkoutTemplate, template_id)
+    if not template:
+        raise AppError(code='template_not_found', message='Template not found', status_code=404)
+
+    created_rows: list[ScheduledWorkout] = []
+    for row in rows:
+        row.status = 'skipped'
+        created = ScheduledWorkout(
+            athlete_id=row.athlete_id,
+            template_id=template_id,
+            date=row.date,
+            status='planned',
+            source='api',
+            notes=row.notes,
+        )
+        db.add(created)
+        created_rows.append(created)
+
+    db.commit()
+    updated_rows = []
+    for row in rows:
+        db.refresh(row)
+        updated_rows.append(row)
+    for row in created_rows:
+        db.refresh(row)
+
+    return {
+        'updated': [serialize_scheduled(row) for row in updated_rows],
+        'created': [serialize_scheduled(row) for row in created_rows],
+        'matched_count': len(rows),
+    }

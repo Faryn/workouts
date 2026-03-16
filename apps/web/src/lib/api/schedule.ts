@@ -1,5 +1,5 @@
 import { req } from './client'
-import type { CalendarItem, ScheduledWorkout } from './types'
+import type { CalendarItem, ScheduledBulkResult, ScheduledWorkout } from './types'
 
 export const scheduleApi = {
   listScheduled: (token: string, athleteId: string) =>
@@ -22,8 +22,14 @@ export const scheduleApi = {
   ) => req<ScheduledWorkout[]>('/v1/scheduled-workouts/pattern', { method: 'POST', body: JSON.stringify(payload) }, token),
   moveScheduled: (token: string, id: string, to_date: string) =>
     req<ScheduledWorkout>(`/v1/scheduled-workouts/${id}/move`, { method: 'POST', body: JSON.stringify({ to_date }) }, token),
+  bulkMoveScheduled: (token: string, payload: { athlete_id: string; from_date: string; to_date: string; shift_days: number }) =>
+    req<ScheduledBulkResult>('/v1/scheduled-workouts/bulk/move', { method: 'POST', body: JSON.stringify(payload) }, token),
   copyScheduled: (token: string, id: string, to_date: string) =>
     req<ScheduledWorkout>(`/v1/scheduled-workouts/${id}/copy`, { method: 'POST', body: JSON.stringify({ to_date }) }, token),
+  bulkReplaceTemplateScheduled: (token: string, payload: { athlete_id: string; from_date: string; to_date: string; template_id: string }) =>
+    req<ScheduledBulkResult>('/v1/scheduled-workouts/bulk/replace-template', { method: 'POST', body: JSON.stringify(payload) }, token),
   skipScheduled: (token: string, id: string) => req<ScheduledWorkout>(`/v1/scheduled-workouts/${id}/skip`, { method: 'POST' }, token),
+  bulkSkipScheduled: (token: string, payload: { athlete_id: string; from_date: string; to_date: string }) =>
+    req<ScheduledBulkResult>('/v1/scheduled-workouts/bulk/skip', { method: 'POST', body: JSON.stringify(payload) }, token),
   deleteScheduled: (token: string, id: string) => req<{ ok: boolean }>(`/v1/scheduled-workouts/${id}`, { method: 'DELETE' }, token),
 }

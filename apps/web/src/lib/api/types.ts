@@ -69,6 +69,12 @@ export type ScheduledWorkout = {
   notes?: string | null
 }
 
+export type ScheduledBulkResult = {
+  updated: ScheduledWorkout[]
+  created: ScheduledWorkout[]
+  matched_count: number
+}
+
 export type CalendarStrengthItem = {
   kind: 'strength'
   id: string

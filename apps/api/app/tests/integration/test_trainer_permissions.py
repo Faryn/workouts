@@ -193,3 +193,123 @@ def test_trainer_forbidden_for_unassigned_athlete(client, seeded_trainer_and_ass
         headers=trainer_headers,
     )
     assert denied_latest.status_code == 403
+
+
+
+def test_trainer_scoped_token_bulk_schedule_endpoints(client, seeded_user, seeded_trainer_and_assignment):
+    trainer, _ = seeded_trainer_and_assignment
+    athlete_headers = _auth(client, seeded_user.email, 'secret123')
+    scoped_headers = _auth(client, trainer.email, 'secret123', athlete_ids=[seeded_user.id])
+
+    original = client.post('/v1/templates/', json={'name': 'Trainer Bulk Original'}, headers=athlete_headers)
+    assert original.status_code == 200
+    original_template = original.json()
+
+    replacement = client.post('/v1/templates/', json={'name': 'Trainer Bulk Replacement'}, headers=athlete_headers)
+    assert replacement.status_code == 200
+    replacement_template = replacement.json()
+
+    for day in ['2026-03-05', '2026-03-06']:
+        created = client.post(
+            '/v1/scheduled-workouts/',
+            json={'athlete_id': seeded_user.id, 'template_id': original_template['id'], 'date': day},
+            headers=athlete_headers,
+        )
+        assert created.status_code == 200
+
+    moved = client.post(
+        '/v1/scheduled-workouts/bulk/move',
+        json={
+            'athlete_id': seeded_user.id,
+            'from_date': '2026-03-05',
+            'to_date': '2026-03-06',
+            'shift_days': 3,
+        },
+        headers=scoped_headers,
+    )
+    assert moved.status_code == 200
+    assert moved.json()['matched_count'] == 2
+    assert [x['date'] for x in moved.json()['updated']] == ['2026-03-08', '2026-03-09']
+
+    replaced = client.post(
+        '/v1/scheduled-workouts/bulk/replace-template',
+        json={
+            'athlete_id': seeded_user.id,
+            'from_date': '2026-03-08',
+            'to_date': '2026-03-09',
+            'template_id': replacement_template['id'],
+        },
+        headers=scoped_headers,
+    )
+    assert replaced.status_code == 200
+    assert replaced.json()['matched_count'] == 2
+    assert len(replaced.json()['created']) == 2
+    assert all(x['template_id'] == replacement_template['id'] for x in replaced.json()['created'])
+
+    skipped = client.post(
+        '/v1/scheduled-workouts/bulk/skip',
+        json={
+            'athlete_id': seeded_user.id,
+            'from_date': '2026-03-08',
+            'to_date': '2026-03-09',
+        },
+        headers=scoped_headers,
+    )
+    assert skipped.status_code == 200
+    assert skipped.json()['matched_count'] == 2
+    assert all(x['status'] == 'skipped' for x in skipped.json()['updated'])
+
+
+
+def test_trainer_scoped_token_bulk_schedule_endpoints_forbid_out_of_scope_athlete(client, seeded_user, seeded_trainer_and_assignment, db_session):
+    from app.core.security import hash_password
+    from app.models.assignment import TrainerAssignment
+    from app.models.user import User
+
+    trainer, _ = seeded_trainer_and_assignment
+    second_athlete = User(
+        email='bulk-scope-athlete@example.com',
+        password_hash=hash_password('secret123'),
+        role='athlete',
+        active=True,
+    )
+    db_session.add(second_athlete)
+    db_session.commit()
+    db_session.refresh(second_athlete)
+
+    db_session.add(TrainerAssignment(trainer_id=trainer.id, athlete_id=second_athlete.id))
+    db_session.commit()
+
+    scoped_headers = _auth(client, trainer.email, 'secret123', athlete_ids=[seeded_user.id])
+
+    for path, payload in [
+        (
+            '/v1/scheduled-workouts/bulk/move',
+            {
+                'athlete_id': second_athlete.id,
+                'from_date': '2026-03-05',
+                'to_date': '2026-03-06',
+                'shift_days': 2,
+            },
+        ),
+        (
+            '/v1/scheduled-workouts/bulk/replace-template',
+            {
+                'athlete_id': second_athlete.id,
+                'from_date': '2026-03-05',
+                'to_date': '2026-03-06',
+                'template_id': 'irrelevant-here',
+            },
+        ),
+        (
+            '/v1/scheduled-workouts/bulk/skip',
+            {
+                'athlete_id': second_athlete.id,
+                'from_date': '2026-03-05',
+                'to_date': '2026-03-06',
+            },
+        ),
+    ]:
+        denied = client.post(path, json=payload, headers=scoped_headers)
+        assert denied.status_code == 403
+        assert denied.json()['error']['code'] == 'token_scope_forbidden'

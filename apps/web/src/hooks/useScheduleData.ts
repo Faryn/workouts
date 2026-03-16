@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { api, type CalendarItem, type ExerciseOption, type ScheduledWorkout, type Template } from '../lib/api'
-import { addDays, addMonths, iso, weekStartMonday } from '../lib/date'
+import { iso } from '../lib/date'
 import { errorMessage } from '../lib/errors'
+import {
+  buildExerciseNameById,
+  buildScheduleRange,
+  buildTemplateById,
+  buildTemplateNameById,
+  buildVisibleWeeks,
+  getRangedPlannedItems,
+  getSelectedCardio,
+  getSelectedStrength,
+} from '../lib/schedule/selectors'
 
 export function useScheduleData(params: { token: string; athleteId: string }) {
   const { token, athleteId } = params
@@ -31,42 +41,14 @@ export function useScheduleData(params: { token: string; athleteId: string }) {
   const [baseMonth, setBaseMonth] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const filtersKey = `schedule-filters:${athleteId}`
 
-  const templateById = useMemo(() => {
-    const m: Record<string, Template> = {}
-    templates.forEach(t => { m[t.id] = t })
-    return m
-  }, [templates])
-
-  const templateNameById = useMemo(() => {
-    const m: Record<string, string> = {}
-    templates.forEach(t => { m[t.id] = t.name })
-    return m
-  }, [templates])
-
-  const exerciseNameById = useMemo(() => {
-    const m: Record<string, string> = {}
-    exercises.forEach(e => { m[e.id] = e.name })
-    return m
-  }, [exercises])
-
-  const range = useMemo(() => {
-    const from = addMonths(baseMonth, -2)
-    const to = addMonths(baseMonth, 4)
-    return { from: iso(from), to: iso(new Date(to.getFullYear(), to.getMonth() + 1, 0)) }
-  }, [baseMonth])
-
-  const visibleWeeks = useMemo(() => {
-    const start = weekStartMonday(new Date(baseMonth.getFullYear(), baseMonth.getMonth(), 1))
-    return Array.from({ length: 4 }, (_, i) => {
-      const weekStart = new Date(start)
-      weekStart.setDate(start.getDate() + i * 7)
-      return Array.from({ length: 7 }, (_, d) => {
-        const day = new Date(weekStart)
-        day.setDate(weekStart.getDate() + d)
-        return day
-      })
-    })
-  }, [baseMonth])
+  const templateById = useMemo(() => buildTemplateById(templates), [templates])
+  const templateNameById = useMemo(() => buildTemplateNameById(templates), [templates])
+  const exerciseNameById = useMemo(() => buildExerciseNameById(exercises), [exercises])
+  const range = useMemo(() => buildScheduleRange(baseMonth), [baseMonth])
+  const visibleWeeks = useMemo(() => buildVisibleWeeks(baseMonth), [baseMonth])
+  const rangedPlanned = useMemo(() => getRangedPlannedItems(items, bulkFrom, bulkTo), [items, bulkFrom, bulkTo])
+  const selectedStrength = useMemo(() => getSelectedStrength(items, selectedDate), [items, selectedDate])
+  const selectedCardio = useMemo(() => getSelectedCardio(calendarItems, selectedDate), [calendarItems, selectedDate])
 
   async function load() {
     setErr(null)
@@ -82,6 +64,17 @@ export function useScheduleData(params: { token: string; athleteId: string }) {
       setItems(s)
       setCalendarItems(c)
       if (!templateId && t[0]) setTemplateId(t[0].id)
+    } catch (e: unknown) {
+      setErr(errorMessage(e))
+    }
+  }
+
+  async function runMutation(task: () => Promise<unknown>, opts?: { onSuccess?: () => void }) {
+    setErr(null)
+    try {
+      await task()
+      opts?.onSuccess?.()
+      await load()
     } catch (e: unknown) {
       setErr(errorMessage(e))
     }
@@ -108,14 +101,16 @@ export function useScheduleData(params: { token: string; athleteId: string }) {
   useEffect(() => { void load() }, [athleteId, range.from, range.to])
 
   async function create() {
-    await api.createScheduled(token, { athlete_id: athleteId, template_id: templateId, date })
-    setDate('')
-    await load()
+    if (!templateId || !date) return
+    await runMutation(
+      () => api.createScheduled(token, { athlete_id: athleteId, template_id: templateId, date }),
+      { onSuccess: () => setDate('') },
+    )
   }
 
   async function createPattern() {
     if (!patternStart || !patternEnd || !templateId) return
-    await api.createScheduledPattern(token, {
+    await runMutation(() => api.createScheduledPattern(token, {
       athlete_id: athleteId,
       template_id: templateId,
       start_date: patternStart,
@@ -123,74 +118,55 @@ export function useScheduleData(params: { token: string; athleteId: string }) {
       pattern_type: patternType,
       interval_days: patternType === 'interval_days' ? intervalDays : undefined,
       weekday: patternType === 'weekday' ? weekday : undefined,
-    })
-    await load()
+    }))
   }
 
   async function moveById(id: string, to: string) {
     if (!to) return
-    await api.moveScheduled(token, id, to)
-    await load()
+    await runMutation(() => api.moveScheduled(token, id, to))
   }
 
   async function copyById(id: string, to: string) {
     if (!to) return
-    await api.copyScheduled(token, id, to)
-    await load()
+    await runMutation(() => api.copyScheduled(token, id, to))
   }
 
   async function skipById(id: string) {
-    await api.skipScheduled(token, id)
-    await load()
+    await runMutation(() => api.skipScheduled(token, id))
   }
 
   async function deleteById(id: string) {
-    await api.deleteScheduled(token, id)
-    await load()
-  }
-
-  function rangedPlannedItems() {
-    if (!bulkFrom || !bulkTo) return []
-    return items.filter(i => i.status === 'planned' && i.date >= bulkFrom && i.date <= bulkTo)
+    await runMutation(() => api.deleteScheduled(token, id))
   }
 
   async function bulkShift() {
-    const scope = rangedPlannedItems()
-    for (const it of scope) {
-      await api.moveScheduled(token, it.id, addDays(it.date, shiftDays))
-    }
-    await load()
+    if (!bulkFrom || !bulkTo) return
+    await runMutation(() => api.bulkMoveScheduled(token, {
+      athlete_id: athleteId,
+      from_date: bulkFrom,
+      to_date: bulkTo,
+      shift_days: shiftDays,
+    }))
   }
 
   async function bulkReplaceTemplate() {
-    if (!bulkTemplateId) return
-    const scope = rangedPlannedItems()
-    for (const it of scope) {
-      await api.createScheduled(token, {
-        athlete_id: athleteId,
-        template_id: bulkTemplateId,
-        date: it.date,
-      })
-      await api.skipScheduled(token, it.id)
-    }
-    await load()
+    if (!bulkFrom || !bulkTo || !bulkTemplateId) return
+    await runMutation(() => api.bulkReplaceTemplateScheduled(token, {
+      athlete_id: athleteId,
+      from_date: bulkFrom,
+      to_date: bulkTo,
+      template_id: bulkTemplateId,
+    }))
   }
 
   async function bulkSkipRange() {
-    const scope = rangedPlannedItems()
-    for (const it of scope) {
-      await api.skipScheduled(token, it.id)
-    }
-    await load()
+    if (!bulkFrom || !bulkTo) return
+    await runMutation(() => api.bulkSkipScheduled(token, {
+      athlete_id: athleteId,
+      from_date: bulkFrom,
+      to_date: bulkTo,
+    }))
   }
-
-  const selectedStrength = items
-    .filter(i => i.date === selectedDate)
-    .sort((a, b) => a.date.localeCompare(b.date))
-
-  const selectedCardio = calendarItems.filter(
-    (i): i is Extract<CalendarItem, { kind: 'cardio' }> => i.kind === 'cardio' && i.date === selectedDate,
-  )
 
   return {
     templates,
@@ -230,7 +206,8 @@ export function useScheduleData(params: { token: string; athleteId: string }) {
     visibleWeeks,
     selectedStrength,
     selectedCardio,
-    rangedPlannedItems,
+    rangedPlannedItems: () => rangedPlanned,
+    load,
     create,
     createPattern,
     moveById,
