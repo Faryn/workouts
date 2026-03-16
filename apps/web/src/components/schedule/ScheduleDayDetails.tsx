@@ -25,9 +25,10 @@ export function ScheduleDayDetails(props: {
   const [actionModeById, setActionModeById] = useState<Record<string, 'move' | 'copy' | null>>({})
   const [actionDateById, setActionDateById] = useState<Record<string, string>>({})
 
-  function openAction(id: string, mode: 'move' | 'copy', currentDate: string) {
+  function openAction(id: string, mode: 'move' | 'copy') {
+    const today = new Date().toISOString().slice(0, 10)
     setActionModeById(prev => ({ ...prev, [id]: mode }))
-    setActionDateById(prev => ({ ...prev, [id]: prev[id] ?? currentDate }))
+    setActionDateById(prev => ({ ...prev, [id]: prev[id] ?? today }))
   }
 
   function closeAction(id: string) {
@@ -70,8 +71,8 @@ export function ScheduleDayDetails(props: {
 
             <div className="row action-row" style={{ marginTop: 8 }}>
               {it.status === 'planned' && <a className="button-link" href={`/sessions?scheduled_id=${it.id}`}><span className="button-icon">▶</span>Start workout</a>}
-              <button onClick={() => openAction(it.id, 'move', it.date)}><span className="button-icon">↔</span>Move workout</button>
-              <button onClick={() => openAction(it.id, 'copy', it.date)}><span className="button-icon">⧉</span>Copy workout</button>
+              <button onClick={() => openAction(it.id, 'move')}><span className="button-icon">↔</span>Move workout</button>
+              <button onClick={() => openAction(it.id, 'copy')}><span className="button-icon">⧉</span>Copy workout</button>
               {it.status === 'planned' && <button onClick={() => props.onSkip(it.id)}><span className="button-icon">⏭</span>Skip workout</button>}
               <button onClick={() => props.onDelete(it.id)}><span className="button-icon">🗑</span>Delete workout</button>
             </div>
