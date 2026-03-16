@@ -1,0 +1,134 @@
+import { useEffect, useRef, useState } from 'react'
+
+import type { SessionDetail } from '../lib/api'
+import { ApiError } from '../lib/api/client'
+
+export type AutosaveReason = 'interval' | 'visibility' | 'pagehide' | 'notes'
+
+export function useSessionAutosave(params: {
+  token: string
+  session: SessionDetail | null
+  sessionNotes: string
+  autosaveSession: (sessionId: string, sessionVersion: number, notes: string) => Promise<{
+    notes?: string | null
+    last_saved_at?: string | null
+    updated_at?: string | null
+    version?: number | null
+  }>
+  setSession: React.Dispatch<React.SetStateAction<SessionDetail | null>>
+  onConflict: (sessionId: string) => Promise<void>
+  onNotice: (message: string) => void
+}) {
+  const { session, sessionNotes, autosaveSession, setSession, onConflict, onNotice } = params
+
+  const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'ok' | 'error'>('idle')
+  const sessionRef = useRef<SessionDetail | null>(null)
+  const notesRef = useRef('')
+  const lastAutosavedNotesRef = useRef('')
+  const lastHeartbeatAutosaveAtRef = useRef(0)
+  const suppressNextNotesAutosaveRef = useRef(false)
+
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
+
+  useEffect(() => {
+    notesRef.current = sessionNotes
+  }, [sessionNotes])
+
+  useEffect(() => {
+    lastAutosavedNotesRef.current = session?.notes ?? ''
+    if (!session) lastHeartbeatAutosaveAtRef.current = 0
+  }, [session?.id, session?.notes])
+
+  async function autosaveCurrent(reason: AutosaveReason) {
+    const active = sessionRef.current
+    if (!active || active.status !== 'in_progress') return
+
+    const notesChanged = notesRef.current !== lastAutosavedNotesRef.current
+    const now = Date.now()
+    const heartbeatDue = now - lastHeartbeatAutosaveAtRef.current >= 120000
+    const shouldSave = reason === 'notes'
+      ? notesChanged
+      : reason === 'interval'
+        ? heartbeatDue && notesChanged
+        : notesChanged || heartbeatDue
+
+    if (!shouldSave) {
+      if (reason === 'interval') setAutosaveState('idle')
+      return
+    }
+
+    try {
+      setAutosaveState('saving')
+      const saved = await autosaveSession(active.id, active.version, notesRef.current)
+      setAutosaveState('ok')
+      lastAutosavedNotesRef.current = saved.notes ?? notesRef.current
+      lastHeartbeatAutosaveAtRef.current = now
+      setSession(prev => prev ? {
+        ...prev,
+        last_saved_at: saved.last_saved_at ?? prev.last_saved_at,
+        updated_at: saved.updated_at ?? prev.updated_at,
+        notes: saved.notes ?? prev.notes,
+        version: saved.version ?? prev.version,
+      } : prev)
+      if (reason === 'visibility' || reason === 'pagehide') onNotice('Session progress saved.')
+    } catch (e) {
+      setAutosaveState('error')
+      if (e instanceof ApiError && e.code === 'session_conflict' && active.id) {
+        await onConflict(active.id)
+        onNotice('Session changed elsewhere. Reloaded latest version.')
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (!session || session.status !== 'in_progress') return
+
+    const id = window.setInterval(() => {
+      void autosaveCurrent('interval')
+    }, 60000)
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') void autosaveCurrent('visibility')
+    }
+    const onPageHide = () => {
+      void autosaveCurrent('pagehide')
+    }
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', onPageHide)
+    window.addEventListener('beforeunload', onBeforeUnload)
+
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', onPageHide)
+      window.removeEventListener('beforeunload', onBeforeUnload)
+    }
+  }, [session])
+
+  useEffect(() => {
+    if (!session || session.status !== 'in_progress') return
+    if (suppressNextNotesAutosaveRef.current) {
+      suppressNextNotesAutosaveRef.current = false
+      return
+    }
+    const id = window.setTimeout(() => {
+      void autosaveCurrent('notes')
+    }, 1200)
+    return () => window.clearTimeout(id)
+  }, [session, sessionNotes])
+
+  return {
+    autosaveState,
+    autosaveCurrent,
+    suppressNextNotesAutosave() {
+      suppressNextNotesAutosaveRef.current = true
+    },
+  }
+}

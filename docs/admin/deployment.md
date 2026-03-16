@@ -94,6 +94,7 @@ This prevents the exact class of failure where a deploy accidentally starts the 
 
 ## Web deploy cache behavior
 - Frontend service worker cache name is build-versioned (`/sw.js?v=<build-version>`), so normal rebuild/redeploy should rotate cache automatically.
+- Service worker must **not cache `/api/*` responses**; the current app/runtime also forces API reads to `no-store` and clears older `workout-web-*` caches on startup to reduce ghost-state/stale-session issues.
 - If a client still shows stale UI after deploy, do a hard refresh and, if needed, unregister the service worker once in browser DevTools.
 
 ## Scheduled backups + retention

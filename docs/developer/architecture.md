@@ -25,6 +25,11 @@ The intended direction is **domain-local policy modules**, not a single global p
 - trainer: assigned athlete records, including assigned-athlete template management
 - admin: unrestricted API access; web UI is users-admin surface
 
+Exercise-library note:
+- Exercises now operate as a **single global pool** for suggestions/selection.
+- The product rule is no per-user/per-athlete exercise library.
+- In practice this currently means create flows add to the global pool, while edit/delete on global exercises remain admin-only unless/until a richer moderation path is added.
+
 ## Notes
 This structure keeps routers thin and makes service-layer unit testing easier.
 
@@ -45,5 +50,8 @@ The session flow now uses an optimistic concurrency pattern:
 - `workout_sessions.version` and `updated_at` are returned in session payloads.
 - Mutating endpoints (`sets`, `autosave`, `finish`) require the caller's `session_version`.
 - The service layer rejects stale writes with a structured `session_conflict` error.
-- The web app keeps a local active-session backup, resumes the latest in-progress session, and autosaves on interval plus lifecycle events (`visibilitychange`, `pagehide`).
+- The web app keeps a local active-session backup, resumes the latest in-progress session, and reconciles local state against server truth on load.
+- Autosave is **event-driven first** (done/skip/finish/leave + debounced notes) with a slower periodic safety heartbeat instead of constant churn.
+- Backend autosave avoids bumping session version when notes/state are effectively unchanged.
 - Offline queued set writes refresh the latest session before replay so retries use the current session version.
+- The service worker must not cache `/api/*` responses; current web runtime now bypasses API caching and clears older workout-web caches on startup.

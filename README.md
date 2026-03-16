@@ -8,17 +8,18 @@ Current live deployment: `https://workouts.thepowl.de`
 Implemented slices include:
 - Auth (login + me) with optional athlete-scoped trainer/admin API tokens
 - Admin user management (list/create/update users + password reset)
-- Exercise CRUD with visibility/ownership filtering
+- Exercise CRUD with a single shared **global exercise pool** (no per-user exercise records)
 - Program CRUD (template-backed) with ordered exercises, role-aware `can_manage`, and `exercise_name` fallback
 - Scheduling (create/move/copy/skip/delete + recurring patterns)
 - Slice-by-slice backend refactor toward thin routers plus domain-local service/policy/serializer modules (completed so far for templates, exercises, auth/assignment, scheduling, and session-query handling)
 - Dashboard-centered schedule/calendar flow (upcoming workouts, calendar, selected-day details, quick add, advanced scheduling tools)
-- Session flow (start, log sets, autosave, finish, history, latest in-progress)
+- Session flow (start, resume, navigate sets, log sets, autosave, finish, history, latest in-progress)
 - Session reliability hardening:
   - optimistic concurrency via `version` + `updated_at`
   - stale-write protection on set logs / autosave / finish
   - duplicate in-progress session protection
-  - resumable active session UX with local backup + autosave on visibility/page-hide
+  - resumable active session UX with local backup + server-truth reconciliation on load
+  - smarter autosave: event-driven first (done/skip/finish/leave + debounced notes), slower periodic safety backup, and no version bump for no-op autosaves
 - UI refinements across Dashboard / Programs / Train:
   - consistent action labels
   - relative-date upcoming cards
@@ -26,6 +27,9 @@ Implemented slices include:
   - accessibility/focus improvements
   - Train page hierarchy centered on resume / today’s workout first
   - passive autosave status inside the in-progress workout header
+  - active workout UI centered on the **current set** with a quieter workout map below
+  - previous/next set navigation, save-and-exit flow, and auto-finish when the final remaining set is done/skipped
+  - rest timer upgraded with stronger cues including a **3-2-1 countdown** and final ready/go cue
   - mobile top bar with current section label + left-side slide-out navigation menu
   - tighter calendar header alignment and more compact month-view day cells
 - Cardio logging
@@ -134,6 +138,9 @@ See `docs/admin/deployment.md` for guardrails and restore verification.
 ## Working UI conventions
 - Primary web navigation is **Dashboard / Programs / Train**.
 - The Train page should prioritize **resume / today’s workout first**, then secondary/manual start flows.
+- The in-progress workout screen should emphasize the **current set** first; navigation and the full workout map are secondary.
+- Done/Skip operate on the set directly; the timer is a cue, not a gate.
+- Resume should default to the **first unfinished set**, while still allowing free movement across sets/exercises.
 - On mobile, keep the current section visible and expose nav through the left-side drawer toggle.
 - Calendar month views should favor compact scanning over oversized tap targets.
 

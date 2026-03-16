@@ -11,10 +11,10 @@
 - `POST /v1/admin/users/` (admin-only)
 - `PATCH /v1/admin/users/{user_id}` (admin-only)
 - `POST /v1/admin/users/{user_id}/password` (admin-only)
-- `GET /v1/exercises/` (auth required, basic visibility filtering)
-- `POST /v1/exercises/` (role/ownership-aware create)
-- `PATCH /v1/exercises/{exercise_id}`
-- `DELETE /v1/exercises/{exercise_id}`
+- `GET /v1/exercises/` (auth required, returns the shared global exercise pool)
+- `POST /v1/exercises/` (creates into the shared global exercise pool)
+- `PATCH /v1/exercises/{exercise_id}` (currently admin-only in practice because exercises are global)
+- `DELETE /v1/exercises/{exercise_id}` (currently admin-only in practice because exercises are global)
 
 ## Programs / Templates
 - `GET /v1/templates/` (supports optional `athlete_id` context for trainer/admin)
@@ -42,7 +42,7 @@
 - `GET /v1/sessions/in-progress?athlete_id=...` (latest resumable in-progress session)
 - `POST /v1/sessions/start` (from scheduled workout or template; reuses matching in-progress session instead of duplicating)
 - `POST /v1/sessions/{session_id}/sets` (set actual logging while keeping planned values; requires `session_version` for stale-write protection)
-- `POST /v1/sessions/{session_id}/autosave` (updates `last_saved_at` and optional notes for reliability/resume; requires `session_version`)
+- `POST /v1/sessions/{session_id}/autosave` (event-driven/session-safety autosave for notes + lifecycle saves; requires `session_version` and avoids no-op version churn)
 - `POST /v1/sessions/{session_id}/finish` (marks session complete and linked scheduled workout complete; requires `session_version`)
 - Session payloads include `version` + `updated_at` for optimistic concurrency handling.
 
@@ -62,8 +62,11 @@
 - On mobile, navigation uses a sticky top bar with the current section label and a left-side slide-out menu.
 - Scheduling UI is now dashboard-first rather than a separate primary-nav tab.
 - The Train page now prioritizes resume / today’s planned workout before secondary start flows.
+- The active workout view is centered on the **current set**, with previous/next navigation, a quieter workout map, save-and-exit, and auto-finish on the final remaining set.
 - Active workout autosave is presented as passive status in the in-progress workout header rather than as a separate action row.
+- Rest timer cues now include a stronger final cue plus a **3-2-1 countdown**.
 - Calendar month view uses a compact day-cell layout with subtle event dots, with strong emphasis reserved for selected day and today.
+- Recent reliability/cache fixes ensure that stale local/session/service-worker state is reconciled against server truth more aggressively on load.
 - Error responses support structured shape for app-level authorization/domain errors:
   - `{ "error": { "code": string, "message": string, "details": object } }`
 - Current backend refactor direction is slice-by-slice alignment around thin routers plus domain-local service/policy/serializer modules. Templates, exercises, auth/assignment, scheduling, and session queries now follow that pattern more closely than before.

@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 
 import type { SessionDetail } from '../lib/api'
-import type { SetDraft } from './useSessionLifecycle'
+import type { SetDraft } from './sessionLifecycleHelpers'
 
 export type ActiveSessionBackup = {
   sessionId: string
