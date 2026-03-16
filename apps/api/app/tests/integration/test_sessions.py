@@ -341,3 +341,42 @@ def test_session_finish_marks_scheduled_completed(client, seeded_user, db_sessio
     assert done.status_code == 200
     assert done.json()['status'] == 'completed'
     assert done.json()['scheduled_workout_status'] == 'completed'
+
+
+def test_session_finish_marks_remaining_pending_sets_skipped(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+    from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
+
+    ex = Exercise(name='Incline Press', type='strength', owner_scope='global')
+    db_session.add(ex); db_session.commit(); db_session.refresh(ex)
+
+    tpl = WorkoutTemplate(owner_id=seeded_user.id, name='Press Day')
+    db_session.add(tpl); db_session.commit(); db_session.refresh(tpl)
+    db_session.add(WorkoutTemplateExercise(template_id=tpl.id, exercise_id=ex.id, sort_order=1, planned_sets=3, planned_reps=8, planned_weight=60.0))
+    db_session.commit()
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    start = client.post('/v1/sessions/start', json={'template_id': tpl.id}, headers=headers)
+    assert start.status_code == 200
+    start_body = start.json()
+    session_id = start_body['id']
+    logged_exercise_id = start_body['logged_exercises'][0]['id']
+
+    first_set = client.post(f'/v1/sessions/{session_id}/sets', json={
+        'logged_exercise_id': logged_exercise_id,
+        'set_number': 1,
+        'actual_weight': 62.5,
+        'actual_reps': 8,
+        'status': 'done',
+        'session_version': start_body['version'],
+    }, headers=headers)
+    assert first_set.status_code == 200
+
+    done = client.post(f'/v1/sessions/{session_id}/finish', json={'session_version': first_set.json()['session_version']}, headers=headers)
+    assert done.status_code == 200
+    assert done.json()['status'] == 'completed'
+
+    detail = client.get(f'/v1/sessions/{session_id}', headers=headers)
+    assert detail.status_code == 200
+    statuses = [st['status'] for st in detail.json()['logged_exercises'][0]['sets']]
+    assert statuses == ['done', 'skipped', 'skipped']

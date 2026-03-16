@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.models.schedule import ScheduledWorkout
+from app.models.session import LoggedExercise, LoggedSet
 from app.models.template import WorkoutTemplateExercise
 from app.models.user import User
 from app.repositories import session_repo
@@ -180,6 +181,15 @@ def finish_session(db: Session, current_user: User, session_id: str, session_ver
         raise AppError(code="forbidden", message="Forbidden", status_code=403)
     _assert_session_mutable(ws)
     _assert_session_version(ws, session_version)
+
+    pending_sets = (
+        db.query(LoggedSet)
+        .join(LoggedExercise, LoggedExercise.id == LoggedSet.logged_exercise_id)
+        .filter(LoggedExercise.session_id == ws.id, LoggedSet.status == "pending")
+        .all()
+    )
+    for logged_set in pending_sets:
+        logged_set.status = "skipped"
 
     ws.status = "completed"
     ended_at = datetime.now(timezone.utc)
