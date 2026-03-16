@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 
 def _auth(client, email, password):
@@ -380,3 +380,74 @@ def test_session_finish_marks_remaining_pending_sets_skipped(client, seeded_user
     assert detail.status_code == 200
     statuses = [st['status'] for st in detail.json()['logged_exercises'][0]['sets']]
     assert statuses == ['done', 'skipped', 'skipped']
+
+
+def test_logging_set_rebases_stale_session_start_time(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+    from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
+    from app.models.session import WorkoutSession
+
+    ex = Exercise(name='Lat Pulldown', type='strength', owner_scope='global')
+    db_session.add(ex); db_session.commit(); db_session.refresh(ex)
+
+    tpl = WorkoutTemplate(owner_id=seeded_user.id, name='Back Day')
+    db_session.add(tpl); db_session.commit(); db_session.refresh(tpl)
+    db_session.add(WorkoutTemplateExercise(template_id=tpl.id, exercise_id=ex.id, sort_order=1, planned_sets=1, planned_reps=10, planned_weight=45.0))
+    db_session.commit()
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    start = client.post('/v1/sessions/start', json={'template_id': tpl.id}, headers=headers)
+    assert start.status_code == 200
+    start_body = start.json()
+    session_id = start_body['id']
+    logged_exercise_id = start_body['logged_exercises'][0]['id']
+
+    ws = db_session.get(WorkoutSession, session_id)
+    ws.started_at = datetime.now(timezone.utc) - timedelta(days=2)
+    db_session.commit()
+
+    logged = client.post(f'/v1/sessions/{session_id}/sets', json={
+        'logged_exercise_id': logged_exercise_id,
+        'set_number': 1,
+        'actual_weight': 47.5,
+        'actual_reps': 10,
+        'status': 'done',
+        'session_version': start_body['version'],
+    }, headers=headers)
+    assert logged.status_code == 200
+
+    refreshed = db_session.get(WorkoutSession, session_id)
+    started = refreshed.started_at.replace(tzinfo=timezone.utc) if refreshed.started_at.tzinfo is None else refreshed.started_at.astimezone(timezone.utc)
+    assert started > datetime.now(timezone.utc) - timedelta(minutes=1)
+
+
+
+def test_finish_rebases_stale_duration_to_recent_activity(client, seeded_user, db_session):
+    from app.models.exercise import Exercise
+    from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
+    from app.models.session import WorkoutSession
+
+    ex = Exercise(name='Cable Row', type='strength', owner_scope='global')
+    db_session.add(ex); db_session.commit(); db_session.refresh(ex)
+
+    tpl = WorkoutTemplate(owner_id=seeded_user.id, name='Row Day')
+    db_session.add(tpl); db_session.commit(); db_session.refresh(tpl)
+    db_session.add(WorkoutTemplateExercise(template_id=tpl.id, exercise_id=ex.id, sort_order=1, planned_sets=1, planned_reps=12, planned_weight=35.0))
+    db_session.commit()
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    start = client.post('/v1/sessions/start', json={'template_id': tpl.id}, headers=headers)
+    assert start.status_code == 200
+    start_body = start.json()
+    session_id = start_body['id']
+
+    stale_started = datetime.now(timezone.utc) - timedelta(days=4)
+    recent_saved = datetime.now(timezone.utc) - timedelta(minutes=7)
+    ws = db_session.get(WorkoutSession, session_id)
+    ws.started_at = stale_started
+    ws.last_saved_at = recent_saved
+    db_session.commit()
+
+    done = client.post(f'/v1/sessions/{session_id}/finish', json={'session_version': start_body['version']}, headers=headers)
+    assert done.status_code == 200
+    assert 0 <= done.json()['duration_seconds'] <= 10 * 60

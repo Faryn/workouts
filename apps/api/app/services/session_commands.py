@@ -13,6 +13,25 @@ from app.services.session_serializers import serialize_session, serialize_set
 
 logger = logging.getLogger(__name__)
 
+STALE_SESSION_REBASE_SECONDS = 6 * 60 * 60
+
+
+def _normalize_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _should_rebase_started_at(started_at: datetime | None, now: datetime) -> bool:
+    started = _normalize_utc(started_at)
+    if started is None:
+        return False
+    if started.date() != now.date():
+        return True
+    return (now - started).total_seconds() > STALE_SESSION_REBASE_SECONDS
+
 
 def _assert_session_mutable(ws) -> None:
     if ws.status != "in_progress":
@@ -131,6 +150,9 @@ def upsert_set(
     ls.actual_reps = actual_reps
     ls.status = status
     ls.notes = notes
+    now = datetime.now(timezone.utc)
+    if _should_rebase_started_at(ws.started_at, now):
+        ws.started_at = now
     session_repo.touch_session(ws)
     session_repo.commit(db)
     db.refresh(ls)
@@ -193,12 +215,14 @@ def finish_session(db: Session, current_user: User, session_id: str, session_ver
 
     ws.status = "completed"
     ended_at = datetime.now(timezone.utc)
-    started_at = ws.started_at
-    if started_at and started_at.tzinfo is None:
-        started_at = started_at.replace(tzinfo=timezone.utc)
+    started_at = _normalize_utc(ws.started_at)
+    if _should_rebase_started_at(started_at, ended_at):
+        rebased = _normalize_utc(ws.last_saved_at) or ended_at
+        ws.started_at = rebased
+        started_at = rebased
     ws.ended_at = ended_at
     if started_at:
-        ws.duration_seconds = int((ended_at - started_at).total_seconds())
+        ws.duration_seconds = max(0, int((ended_at - started_at).total_seconds()))
     session_repo.touch_session(ws)
 
     scheduled_status = None
