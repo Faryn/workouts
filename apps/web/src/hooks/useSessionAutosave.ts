@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import type { SessionDetail } from '../lib/api'
-import { ApiError } from '../lib/api/client'
+import { ApiError, isUnauthorizedError } from '../lib/api/client'
 
 export type AutosaveReason = 'interval' | 'visibility' | 'pagehide' | 'notes'
 
@@ -27,6 +27,7 @@ export function useSessionAutosave(params: {
   const lastAutosavedNotesRef = useRef('')
   const lastHeartbeatAutosaveAtRef = useRef(0)
   const suppressNextNotesAutosaveRef = useRef(false)
+  const autosaveInFlightRef = useRef(false)
 
   useEffect(() => {
     sessionRef.current = session
@@ -44,6 +45,7 @@ export function useSessionAutosave(params: {
   async function autosaveCurrent(reason: AutosaveReason) {
     const active = sessionRef.current
     if (!active || active.status !== 'in_progress') return
+    if (autosaveInFlightRef.current) return
 
     const notesChanged = notesRef.current !== lastAutosavedNotesRef.current
     const now = Date.now()
@@ -60,6 +62,7 @@ export function useSessionAutosave(params: {
     }
 
     try {
+      autosaveInFlightRef.current = true
       setAutosaveState('saving')
       const saved = await autosaveSession(active.id, active.version, notesRef.current)
       setAutosaveState('ok')
@@ -74,11 +77,17 @@ export function useSessionAutosave(params: {
       } : prev)
       if (reason === 'visibility' || reason === 'pagehide') onNotice('Session progress saved.')
     } catch (e) {
+      if (isUnauthorizedError(e)) {
+        setAutosaveState('idle')
+        return
+      }
       setAutosaveState('error')
       if (e instanceof ApiError && e.code === 'session_conflict' && active.id) {
         await onConflict(active.id)
         onNotice('Session changed elsewhere. Reloaded latest version.')
       }
+    } finally {
+      autosaveInFlightRef.current = false
     }
   }
 

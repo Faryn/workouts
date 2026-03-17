@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { RequireRole } from './components/RoleRoute'
 import { api, type AthleteLite, type Me } from './lib/api'
+import { AUTH_EXPIRED_EVENT, resetAuthExpiryNotification } from './lib/api/client'
 import { sessionMarkerStorage } from './lib/storage'
 import { DashboardPage } from './pages/DashboardPage'
 import { AdminUsersPage } from './pages/AdminUsersPage'
@@ -46,9 +47,19 @@ function App() {
   const [athleteOptions, setAthleteOptions] = useState<AthleteLite[]>([])
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null)
 
+  function clearAuthState() {
+    setAuthenticated(false)
+    setMe(null)
+    setAthleteOptions([])
+    setSelectedAthleteId(null)
+    sessionMarkerStorage.clear()
+    resetAuthExpiryNotification()
+  }
+
   useEffect(() => {
     if (authenticated === false) return
     api.me().then(async user => {
+      resetAuthExpiryNotification()
       sessionMarkerStorage.set()
       setAuthenticated(true)
       setMe(user)
@@ -57,13 +68,17 @@ function App() {
       const defaultAthlete = user.role === 'athlete' ? user.id : (athletes[0]?.id ?? null)
       setSelectedAthleteId(defaultAthlete)
     }).catch(() => {
-      setAuthenticated(false)
-      setMe(null)
-      setAthleteOptions([])
-      setSelectedAthleteId(null)
-      sessionMarkerStorage.clear()
+      clearAuthState()
     })
   }, [authenticated])
+
+  useEffect(() => {
+    const onAuthExpired = () => {
+      clearAuthState()
+    }
+    window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired)
+  }, [])
 
   if (authenticated === null) return <div className="container"><div className="card">Loading profile...</div></div>
   if (!authenticated) return <LoginPage onLogin={() => setAuthenticated(true)} />
@@ -98,11 +113,7 @@ function App() {
     try {
       await api.logout()
     } finally {
-      setAuthenticated(false)
-      setMe(null)
-      setAthleteOptions([])
-      setSelectedAthleteId(null)
-      sessionMarkerStorage.clear()
+      clearAuthState()
     }
   }
 

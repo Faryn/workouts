@@ -1,4 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
+const AUTH_EXPIRED_EVENT = 'workout:auth-expired'
+let authExpiryNotified = false
 
 export class ApiError extends Error {
   status: number
@@ -28,6 +30,22 @@ async function parseApiError(res: Response): Promise<ApiError> {
   }
 }
 
+function notifyAuthExpiredOnce() {
+  if (authExpiryNotified) return
+  authExpiryNotified = true
+  window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT))
+}
+
+export function resetAuthExpiryNotification() {
+  authExpiryNotified = false
+}
+
+export function isUnauthorizedError(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 401
+}
+
+export { AUTH_EXPIRED_EVENT }
+
 export async function req<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
   const extraHeaders = (init.headers ?? {}) as Record<string, string>
   const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...extraHeaders }
@@ -38,7 +56,9 @@ export async function req<T>(path: string, init: RequestInit = {}, token?: strin
     : `${API_BASE}${path}`
   const res = await fetch(url, { ...init, headers, credentials: 'same-origin', cache: 'no-store' })
   if (!res.ok) {
-    throw await parseApiError(res)
+    const error = await parseApiError(res)
+    if (error.status === 401) notifyAuthExpiredOnce()
+    throw error
   }
   return res.json()
 }
@@ -48,7 +68,9 @@ export async function downloadCsv(path: string, token: string | undefined, filen
   if (token) headers.Authorization = `Bearer ${token}`
   const res = await fetch(`${API_BASE}${path}`, { headers, credentials: 'same-origin' })
   if (!res.ok) {
-    throw await parseApiError(res)
+    const error = await parseApiError(res)
+    if (error.status === 401) notifyAuthExpiredOnce()
+    throw error
   }
   const blob = await res.blob()
   const url = URL.createObjectURL(blob)
