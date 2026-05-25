@@ -64,7 +64,10 @@
 - The Train page now prioritizes resume / today’s planned workout before secondary start flows.
 - The active workout view is centered on the **current set**, with previous/next navigation, a quieter workout map, save-and-exit, and auto-finish on the final remaining set.
 - Active workout autosave is presented as passive status in the in-progress workout header rather than as a separate action row.
-- Rest timer cues now include a stronger final cue plus a **3-2-1 countdown**.
+- Rest timer timing is deadline-based so countdowns recover from tab switches/background throttling; cues include a stronger final cue plus a **3-2-1 countdown**.
+- Strength weight entry uses Paul’s adjustable-dumbbell steps only: 2, 3, 4, 5, 7, 8, 9, 10, 11, 14, 16, 18, 20, 23, 24 kg. Manual weights round down to the nearest supported step.
+- Program exercise editing uses persistent labels and inline units (`kg`, `s`) to distinguish sets/reps/weight/rest even after numeric values are filled.
+- Login inputs are blank by default and use browser autocomplete hints for password-manager compatibility.
 - Calendar month view uses a compact day-cell layout with subtle event dots, with strong emphasis reserved for selected day and today.
 - Recent reliability/cache fixes ensure that stale local/session/service-worker state is reconciled against server truth more aggressively on load.
 - Error responses support structured shape for app-level authorization/domain errors:
