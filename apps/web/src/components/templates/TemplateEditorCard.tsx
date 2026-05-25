@@ -94,8 +94,9 @@ export function TemplateEditorCard(props: {
         const showSuggestions = focusedIndex === idx && query.trim().length > 0 && query.trim() !== (selectedName ?? '')
 
         return (
-          <div key={`${ex.exercise_id}-${idx}`} className="row" style={{ marginBottom: 8, alignItems: 'center' }}>
-            <div style={{ minWidth: 260, position: 'relative' }}>
+          <div key={`${ex.exercise_id}-${idx}`} className="template-exercise-row">
+            <div className="template-field template-field-exercise">
+              <span>Exercise</span>
               <input
                 value={query}
                 onChange={e => {
@@ -153,47 +154,65 @@ export function TemplateEditorCard(props: {
                 </div>
               )}
             </div>
-            <input
-              type="number"
-              min={1}
-              value={ex.planned_sets}
-              onChange={e => setExerciseAt(idx, { planned_sets: Number(e.target.value || 1) })}
-              placeholder="Sets"
-              style={{ width: 90 }}
-            />
-            <input
-              type="number"
-              min={1}
-              value={ex.planned_reps}
-              onChange={e => setExerciseAt(idx, { planned_reps: Number(e.target.value || 1) })}
-              placeholder="Reps"
-              style={{ width: 90 }}
-            />
-            <input
-              list="template-dumbbell-weight-options"
-              value={ex.planned_weight ?? ''}
-              onChange={e => setExerciseAt(idx, { planned_weight: e.target.value === '' ? undefined : Number(e.target.value) })}
-              onBlur={e => {
-                const normalized = normalizeDumbbellWeightInput(e.target.value)
-                setExerciseAt(idx, { planned_weight: normalized === '' ? undefined : Number(normalized) })
-              }}
-              placeholder="Weight"
-              style={{ width: 110 }}
-            />
-            <input
-              type="number"
-              min={0}
-              value={ex.rest_seconds ?? ''}
-              onChange={e => setExerciseAt(idx, { rest_seconds: e.target.value === '' ? undefined : Number(e.target.value) })}
-              placeholder="Rest sec"
-              style={{ width: 110 }}
-            />
-            <input
-              value={ex.notes ?? ''}
-              onChange={e => setExerciseAt(idx, { notes: e.target.value || undefined })}
-              placeholder="Exercise notes"
-            />
+            <label className="template-field template-field-small">
+              <span>Sets</span>
+              <input
+                type="number"
+                min={1}
+                value={ex.planned_sets}
+                onChange={e => setExerciseAt(idx, { planned_sets: Number(e.target.value || 1) })}
+                aria-label="Sets"
+              />
+            </label>
+            <label className="template-field template-field-small">
+              <span>Reps</span>
+              <input
+                type="number"
+                min={1}
+                value={ex.planned_reps}
+                onChange={e => setExerciseAt(idx, { planned_reps: Number(e.target.value || 1) })}
+                aria-label="Reps"
+              />
+            </label>
+            <label className="template-field template-field-unit">
+              <span>Weight</span>
+              <div className="unit-input">
+                <input
+                  list="template-dumbbell-weight-options"
+                  value={ex.planned_weight ?? ''}
+                  onChange={e => setExerciseAt(idx, { planned_weight: e.target.value === '' ? undefined : Number(e.target.value) })}
+                  onBlur={e => {
+                    const normalized = normalizeDumbbellWeightInput(e.target.value)
+                    setExerciseAt(idx, { planned_weight: normalized === '' ? undefined : Number(normalized) })
+                  }}
+                  aria-label="Weight"
+                />
+                <span>kg</span>
+              </div>
+            </label>
+            <label className="template-field template-field-unit">
+              <span>Rest</span>
+              <div className="unit-input">
+                <input
+                  type="number"
+                  min={0}
+                  value={ex.rest_seconds ?? ''}
+                  onChange={e => setExerciseAt(idx, { rest_seconds: e.target.value === '' ? undefined : Number(e.target.value) })}
+                  aria-label="Rest seconds"
+                />
+                <span>s</span>
+              </div>
+            </label>
+            <label className="template-field template-field-notes">
+              <span>Notes</span>
+              <input
+                value={ex.notes ?? ''}
+                onChange={e => setExerciseAt(idx, { notes: e.target.value || undefined })}
+                placeholder="Optional"
+              />
+            </label>
             <button
+              className="template-row-button"
               onClick={() => {
                 if (idx === 0) return
                 const next = [...editing.exercises]
@@ -205,6 +224,7 @@ export function TemplateEditorCard(props: {
               disabled={idx === 0}
             >↑</button>
             <button
+              className="template-row-button"
               onClick={() => {
                 if (idx === editing.exercises.length - 1) return
                 const next = [...editing.exercises]
@@ -215,7 +235,7 @@ export function TemplateEditorCard(props: {
               }}
               disabled={idx === editing.exercises.length - 1}
             >↓</button>
-            <button onClick={() => props.onChange({ ...editing, exercises: editing.exercises.filter((_, i) => i !== idx) })}>Remove</button>
+            <button className="template-row-button" onClick={() => props.onChange({ ...editing, exercises: editing.exercises.filter((_, i) => i !== idx) })}>Remove</button>
           </div>
         )
       })}

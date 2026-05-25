@@ -104,6 +104,15 @@ ul { margin: 0; padding-left: 18px; }
 .exercise-card.dimmed { opacity: 0.8; }
 .quick-stepper { display: inline-flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .quick-stepper button { min-height: 34px; padding: 6px 10px; font-size: 0.92rem; }
+.template-exercise-row { display: grid; grid-template-columns: minmax(220px, 1.35fr) 76px 76px 112px 100px minmax(160px, 0.9fr) auto auto auto; gap: 10px; align-items: end; margin-bottom: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: rgba(15,23,42,0.54); }
+.template-field { min-width: 0; display: flex; flex-direction: column; gap: 5px; color: var(--muted); font-size: 0.78rem; font-weight: 700; text-transform: uppercase; }
+.template-field input { width: 100%; }
+.template-field-exercise { position: relative; }
+.unit-input { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid #36465d; border-radius: 12px; background: var(--surface-3); overflow: hidden; }
+.unit-input:focus-within { outline: 3px solid var(--accent-2); outline-offset: 2px; border-color: var(--accent); }
+.unit-input input { min-width: 0; border: 0; border-radius: 0; background: transparent; outline: 0; }
+.unit-input span { padding-right: 10px; color: var(--accent-2); font-size: 0.9rem; font-weight: 800; text-transform: none; }
+.template-row-button { align-self: end; min-width: 46px; padding-inline: 10px; }
 .suggestions { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 10; background: #0b1220; border: 1px solid #374151; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
 .suggestion-item { width: 100%; text-align: left; border: 0; border-bottom: 1px solid #1f2937; border-radius: 0; background: #0b1220; padding: 6px 10px; min-height: 34px; font-size: 0.95rem; }
 .suggestion-item:hover { background: #0f1a2d; }
@@ -125,5 +134,7 @@ ul { margin: 0; padding-left: 18px; }
   .app-main { padding-top: 18px; }
   .dashboard-grid { grid-template-columns: 1fr; }
   .train-secondary-grid { grid-template-columns: 1fr; }
+  .template-exercise-row { grid-template-columns: minmax(0, 1fr) 76px 76px 112px 100px; }
+  .template-field-exercise, .template-field-notes { grid-column: 1 / -1; }
 }
-@media (max-width: 700px) { .app-main { padding: 14px; padding-top: 16px; } input, button, select, textarea { font-size: 16px; min-height: 48px; } .card { padding: 16px; border-radius: 16px; } .grid-2 { grid-template-columns: 1fr; } .hero-panel { flex-direction: column; } .set-row { grid-template-columns: 72px 1fr; } .train-priority-card { flex-direction: column; align-items: stretch; } .train-secondary-card button { align-self: stretch; } .train-status-indicator { width: 100%; margin-left: 0; } .schedule-calendar-toolbar { align-items: stretch; } .schedule-calendar-toolbar-main { width: 100%; justify-content: space-between; } .schedule-calendar-month-label { min-height: 48px; } .schedule-calendar-day { min-height: 54px; padding: 7px 8px; } .schedule-calendar-day-number { font-size: 0.94rem; } }
+@media (max-width: 700px) { .app-main { padding: 14px; padding-top: 16px; } input, button, select, textarea { font-size: 16px; min-height: 48px; } .card { padding: 16px; border-radius: 16px; } .grid-2 { grid-template-columns: 1fr; } .hero-panel { flex-direction: column; } .set-row { grid-template-columns: 72px 1fr; } .train-priority-card { flex-direction: column; align-items: stretch; } .train-secondary-card button { align-self: stretch; } .train-status-indicator { width: 100%; margin-left: 0; } .schedule-calendar-toolbar { align-items: stretch; } .schedule-calendar-toolbar-main { width: 100%; justify-content: space-between; } .schedule-calendar-month-label { min-height: 48px; } .schedule-calendar-day { min-height: 54px; padding: 7px 8px; } .schedule-calendar-day-number { font-size: 0.94rem; } .template-exercise-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } .template-field-exercise, .template-field-notes { grid-column: 1 / -1; } .template-row-button { min-width: 0; width: 100%; } }
