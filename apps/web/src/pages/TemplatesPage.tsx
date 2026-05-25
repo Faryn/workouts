@@ -4,6 +4,7 @@ import { TemplateListCard } from '../components/templates/TemplateListCard'
 import type { EditableTemplate } from '../components/templates/types'
 import { api, type ExerciseOption, type Template, type TemplateExerciseInput } from '../lib/api'
 import { errorMessage } from '../lib/errors'
+import { floorToDumbbellWeight } from '../lib/weights'
 
 function toEditable(t: Template): EditableTemplate {
   return {
@@ -78,7 +79,15 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
     if (!editing) return
     setSaving(true)
     try {
-      const exercises: TemplateExerciseInput[] = editing.exercises.map((e, idx) => ({ exercise_id: e.exercise_id, sort_order: idx + 1, planned_sets: e.planned_sets, planned_reps: e.planned_reps, planned_weight: e.planned_weight, rest_seconds: e.rest_seconds, notes: e.notes }))
+      const exercises: TemplateExerciseInput[] = editing.exercises.map((e, idx) => ({
+        exercise_id: e.exercise_id,
+        sort_order: idx + 1,
+        planned_sets: e.planned_sets,
+        planned_reps: e.planned_reps,
+        planned_weight: e.planned_weight == null ? undefined : (floorToDumbbellWeight(e.planned_weight) ?? undefined),
+        rest_seconds: e.rest_seconds,
+        notes: e.notes,
+      }))
       if (exercises.some(e => !e.exercise_id)) throw new Error('Please select or create an exercise for each row before saving.')
       await api.patchTemplate(token, editing.id, { name: editing.name.trim() || 'Untitled Program', notes: editing.notes.trim() || undefined, exercises })
       setEditing(null)

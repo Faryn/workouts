@@ -50,9 +50,11 @@ export function InProgressSession(props: {
     if (!active) return null
     const k = setKey(active.loggedExerciseId, active.setNumber)
     const draft = props.setDrafts[k]
+    const hasDraftWeight = draft && Object.prototype.hasOwnProperty.call(draft, 'actual_weight')
+    const hasDraftReps = draft && Object.prototype.hasOwnProperty.call(draft, 'actual_reps')
     return {
-      actual_weight: draft?.actual_weight !== '' ? draft?.actual_weight : (active.actualWeight != null ? String(active.actualWeight) : (active.plannedWeight != null ? String(active.plannedWeight) : '')),
-      actual_reps: draft?.actual_reps !== '' ? draft?.actual_reps : (active.actualReps != null ? String(active.actualReps) : (active.plannedReps != null ? String(active.plannedReps) : '')),
+      actual_weight: hasDraftWeight ? draft.actual_weight : (active.actualWeight != null ? String(active.actualWeight) : (active.plannedWeight != null ? String(active.plannedWeight) : '')),
+      actual_reps: hasDraftReps ? draft.actual_reps : (active.actualReps != null ? String(active.actualReps) : (active.plannedReps != null ? String(active.plannedReps) : '')),
       status: draft?.status ?? (active.status === 'skipped' ? 'skipped' : 'done'),
     }
   }, [active, props.setDrafts])

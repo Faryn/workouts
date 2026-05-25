@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import type { ExerciseOption } from '../../lib/api'
+import { DUMBBELL_WEIGHTS_KG, normalizeDumbbellWeightInput } from '../../lib/weights'
 import type { EditableTemplate } from './types'
 
 function fuzzyScore(query: string, candidate: string): number {
@@ -77,6 +78,9 @@ export function TemplateEditorCard(props: {
       </div>
 
       <h4 style={{ marginBottom: 8 }}>Exercises</h4>
+      <datalist id="template-dumbbell-weight-options">
+        {DUMBBELL_WEIGHTS_KG.map(weight => <option key={weight} value={weight} />)}
+      </datalist>
       {editing.exercises.map((ex, idx) => {
         const query = queries[idx] ?? ''
         const ranked = props.exerciseOptions
@@ -166,10 +170,13 @@ export function TemplateEditorCard(props: {
               style={{ width: 90 }}
             />
             <input
-              type="number"
-              step="0.5"
+              list="template-dumbbell-weight-options"
               value={ex.planned_weight ?? ''}
               onChange={e => setExerciseAt(idx, { planned_weight: e.target.value === '' ? undefined : Number(e.target.value) })}
+              onBlur={e => {
+                const normalized = normalizeDumbbellWeightInput(e.target.value)
+                setExerciseAt(idx, { planned_weight: normalized === '' ? undefined : Number(normalized) })
+              }}
               placeholder="Weight"
               style={{ width: 110 }}
             />

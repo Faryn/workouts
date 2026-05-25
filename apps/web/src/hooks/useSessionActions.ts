@@ -4,6 +4,7 @@ import { api, type SessionDetail } from '../lib/api'
 import { ApiError, isUnauthorizedError } from '../lib/api/client'
 import { errorMessage } from '../lib/errors'
 import { hasRemainingSets, nextSetKey, setKey, summarizeSession, type SessionCompletionSummary, type SetDraft } from './sessionLifecycleHelpers'
+import { toDumbbellWeightOrNull } from '../lib/weights'
 import type { LeaveSessionResult } from './useSessionLifecycle'
 
 export function useSessionActions(params: {
@@ -113,7 +114,7 @@ export function useSessionActions(params: {
     pendingSetKeysRef.current.add(k)
 
     const draft = draftValues[k] ?? { actual_weight: '', actual_reps: '', status }
-    const actualWeight = draft.actual_weight === '' ? null : Number(draft.actual_weight)
+    const actualWeight = toDumbbellWeightOrNull(draft.actual_weight)
     const actualReps = draft.actual_reps === '' ? null : Number(draft.actual_reps)
 
     try {

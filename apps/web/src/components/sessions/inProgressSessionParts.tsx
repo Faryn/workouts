@@ -1,5 +1,7 @@
 import { useState } from 'react'
 
+import { DUMBBELL_WEIGHTS_KG, nextDumbbellWeight, normalizeDumbbellWeightInput } from '../../lib/weights'
+
 type LoggedSet = {
   set_number: number
   planned_weight?: number | null
@@ -93,19 +95,25 @@ export function CurrentSetEditor(props: {
           <div>
             <div className="small" style={{ marginBottom: 4 }}>Weight (kg)</div>
             <input
+              list="dumbbell-weight-options"
               value={props.activeDraft.actual_weight}
               onChange={e => props.onChangeDraft(key, { ...props.activeDraft, actual_weight: e.target.value })}
               onFocus={() => setEditingWeight(true)}
-              onBlur={() => window.setTimeout(() => setEditingWeight(false), 120)}
+              onBlur={e => {
+                props.onChangeDraft(key, { ...props.activeDraft, actual_weight: normalizeDumbbellWeightInput(e.target.value) })
+                window.setTimeout(() => setEditingWeight(false), 120)
+              }}
               aria-label="Weight"
               placeholder="kg"
               style={{ width: '100%' }}
             />
+            <datalist id="dumbbell-weight-options">
+              {DUMBBELL_WEIGHTS_KG.map(weight => <option key={weight} value={weight} />)}
+            </datalist>
             {editingWeight && (
               <div className="quick-stepper">
-                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => props.onChangeDraft(key, { ...props.activeDraft, actual_weight: String(Math.max(0, (Number(props.activeDraft.actual_weight || 0) - 2.5)).toFixed(1)).replace(/\.0$/, '') })}>-2.5</button>
-                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => props.onChangeDraft(key, { ...props.activeDraft, actual_weight: String(Math.max(0, Number(props.activeDraft.actual_weight || 0) + 2.5)).replace(/\.0$/, '') })}>+2.5</button>
-                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => props.onChangeDraft(key, { ...props.activeDraft, actual_weight: String(Math.max(0, Number(props.activeDraft.actual_weight || 0) + 5)).replace(/\.0$/, '') })}>+5</button>
+                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => props.onChangeDraft(key, { ...props.activeDraft, actual_weight: nextDumbbellWeight(props.activeDraft.actual_weight, -1) })}>-</button>
+                <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => props.onChangeDraft(key, { ...props.activeDraft, actual_weight: nextDumbbellWeight(props.activeDraft.actual_weight, 1) })}>+</button>
               </div>
             )}
           </div>
