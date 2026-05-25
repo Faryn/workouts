@@ -3,7 +3,7 @@ import { api } from '../lib/api'
 import { errorMessage } from '../lib/errors'
 
 export function LoginPage({ onLogin }: { onLogin: () => void }) {
-  const [email, setEmail] = useState('athlete@example.com')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -23,8 +23,8 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
       <div className="card" style={{ maxWidth: 420, margin: '80px auto' }}>
         <h2>Workout App Login</h2>
         <form onSubmit={submit} className="row" style={{ flexDirection: 'column' }}>
-          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" />
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" autoComplete="username" />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" autoComplete="current-password" />
           <button type="submit">Login</button>
         </form>
         {error && <p style={{ color: '#fca5a5' }}>{error}</p>}
