@@ -63,6 +63,7 @@
 - Scheduling UI is now dashboard-first rather than a separate primary-nav tab.
 - The Train page now prioritizes resume / today’s planned workout before secondary start flows.
 - The active workout view is centered on the **current set**, with previous/next navigation, a quieter workout map, save-and-exit, and auto-finish on the final remaining set.
+- Pending workout sets prefill their editable reps and weight from the plan; existing actual values remain authoritative.
 - Active workout autosave is presented as passive status in the in-progress workout header rather than as a separate action row.
 - Rest timer timing is deadline-based so countdowns recover from tab switches/background throttling; cues include a stronger final cue plus a **3-2-1 countdown**.
 - Strength weight entry uses Paul’s adjustable-dumbbell steps only: 2, 3, 4, 5, 7, 8, 9, 10, 11, 14, 16, 18, 20, 23, 24 kg. Manual weights round down to the nearest supported step.

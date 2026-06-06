@@ -28,6 +28,7 @@ Implemented slices include:
   - Train page hierarchy centered on resume / today’s workout first
   - passive autosave status inside the in-progress workout header
   - active workout UI centered on the **current set** with a quieter workout map below
+  - pending sets prefilled with their planned reps and weight while preserving logged actual values
   - previous/next set navigation, save-and-exit flow, and auto-finish when the final remaining set is done/skipped
   - rest timer upgraded with stronger cues including a **3-2-1 countdown** and final ready/go cue
   - mobile top bar with current section label + left-side slide-out navigation menu

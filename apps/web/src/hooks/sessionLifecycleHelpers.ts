@@ -96,8 +96,8 @@ export function initializeDraftStateFromSession(session: SessionDetail | null) {
       if (!firstKey) firstKey = key
       if (!firstUnfinishedKey && st.status !== 'done' && st.status !== 'skipped') firstUnfinishedKey = key
       draftValues[key] = {
-        actual_weight: st.actual_weight != null ? String(st.actual_weight) : (st.status === 'pending' ? '' : (st.planned_weight != null ? String(st.planned_weight) : '')),
-        actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.status === 'pending' ? '' : (st.planned_reps != null ? String(st.planned_reps) : '')),
+        actual_weight: st.actual_weight != null ? String(st.actual_weight) : (st.planned_weight != null ? String(st.planned_weight) : ''),
+        actual_reps: st.actual_reps != null ? String(st.actual_reps) : (st.planned_reps != null ? String(st.planned_reps) : ''),
         status: st.status === 'skipped' ? 'skipped' : 'done',
       }
     }
