@@ -42,7 +42,7 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [templateId, setTemplateId] = useState('')
-  const [scheduledId, setScheduledId] = useState('')
+  const [scheduledId, setScheduledId] = useState(() => searchParams.get('scheduled_id') ?? '')
   const [notice, setNotice] = useState<string | null>(null)
 
   const rest = useRestTimer(DEFAULT_REST_SECONDS)
@@ -126,8 +126,6 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
   }, [notice])
 
   useEffect(() => {
-    const fromUrl = searchParams.get('scheduled_id')
-    if (fromUrl) setScheduledId(fromUrl)
     void loadAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -171,7 +169,7 @@ export function SessionsPage({ token, athleteId }: { token: string; athleteId: s
           onTemplateId={setTemplateId}
           onScheduledId={setScheduledId}
           onStartFromTemplate={() => void startFromTemplate()}
-          onStartFromScheduled={() => void startFromScheduled()}
+          onStartFromScheduled={(id) => void startFromScheduled(id)}
           onResume={() => void loadAll()}
           err={err}
         />

@@ -64,7 +64,14 @@ export function useSessionData(params: {
       const planned = s.filter(x => x.status === 'planned')
       setScheduledItems(planned)
       if (!templateId && t[0]) setTemplateId(t[0].id)
-      if (!scheduledId && planned[0]) setScheduledId(planned[0].id)
+      if (!scheduledId && planned[0]) {
+        const today = new Date().toLocaleDateString('en-CA')
+        const ordered = planned.slice().sort((a, b) => a.date.localeCompare(b.date))
+        const preferred = ordered.find(item => item.date === today)
+          ?? ordered.find(item => item.date >= today)
+          ?? ordered[0]
+        setScheduledId(preferred.id)
+      }
     } catch (e: unknown) {
       setErr(errorMessage(e))
     }

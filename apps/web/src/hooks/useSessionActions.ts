@@ -75,10 +75,10 @@ export function useSessionActions(params: {
     }
   }
 
-  async function startFromScheduled() {
+  async function startFromScheduled(scheduledWorkoutId = scheduledId) {
     setErr(null)
     try {
-      const started = await api.startSession(token, { scheduled_workout_id: scheduledId })
+      const started = await api.startSession(token, { scheduled_workout_id: scheduledWorkoutId })
       setSession(started)
       initializeFromSession(started, { suppressAutosave: suppressNextNotesAutosave })
       clearBackup()

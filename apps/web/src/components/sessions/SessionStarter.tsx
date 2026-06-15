@@ -22,7 +22,7 @@ export function SessionStarter(props: {
   onTemplateId: (v: string) => void
   onScheduledId: (v: string) => void
   onStartFromTemplate: () => void
-  onStartFromScheduled: () => void
+  onStartFromScheduled: (scheduledWorkoutId?: string) => void
   onResume: () => void
   err?: string | null
 }) {
@@ -69,7 +69,7 @@ export function SessionStarter(props: {
             className="primary"
             onClick={() => {
               props.onScheduledId(priorityWorkout.id)
-              props.onStartFromScheduled()
+              props.onStartFromScheduled(priorityWorkout.id)
             }}
           >
             <span className="button-icon">▶</span>
@@ -106,7 +106,7 @@ export function SessionStarter(props: {
                   ))}
                 </select>
               </label>
-              <button onClick={props.onStartFromScheduled} disabled={!props.scheduledId}>
+              <button onClick={() => props.onStartFromScheduled()} disabled={!props.scheduledId}>
                 <span className="button-icon">▶</span>Start planned workout
               </button>
               {selectedWorkout && (

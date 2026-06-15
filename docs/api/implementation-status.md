@@ -62,6 +62,7 @@
 - On mobile, navigation uses a sticky top bar with the current section label and a left-side slide-out menu.
 - Scheduling UI is now dashboard-first rather than a separate primary-nav tab.
 - The Train page now prioritizes resume / today’s planned workout before secondary start flows.
+- Starting a priority workout passes its schedule ID directly, and default selection prefers today/next over overdue planned items.
 - The active workout view is centered on the **current set**, with previous/next navigation, a quieter workout map, save-and-exit, and auto-finish on the final remaining set.
 - Pending workout sets prefill their editable reps and weight from the plan; existing actual values remain authoritative.
 - Active workout autosave is presented as passive status in the in-progress workout header rather than as a separate action row.
