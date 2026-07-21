@@ -77,12 +77,13 @@ export function useSessionData(params: {
     }
   }
 
-  async function reloadLatestSession(sessionId: string) {
+  async function reloadLatestSession(sessionId: string): Promise<SessionDetail | null> {
     const latest = await api.getSession(token, sessionId).catch(() => null)
     if (latest) {
       setSession(latest)
       initializeFromSession(latest, { preserveLocalDrafts: true, suppressAutosave: suppressNextNotesAutosave })
     }
+    return latest
   }
 
   async function toggleHistoryDetails(sessionId: string) {

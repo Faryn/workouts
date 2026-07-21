@@ -8,6 +8,15 @@
   sole public entrypoint. Do not widen this bind without equivalent firewall
   and proxy-header controls.
 
+## Reproducible image builds
+The API image installs from the fully pinned `apps/api/requirements.txt`; base
+images are pinned by digest. Regenerate the lock after reviewing dependency
+updates with:
+
+```bash
+uv pip compile apps/api/pyproject.toml -o apps/api/requirements.txt
+```
+
 ## Proxy headers and login throttling
 The public reverse proxy must overwrite—not append—`X-Forwarded-For` with its
 actual peer address, as shown in `infra/nginx-example.conf`. This prevents a

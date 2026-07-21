@@ -6,7 +6,6 @@ from sqlalchemy.orm import sessionmaker
 
 from app.main import app
 from app.core.db import Base, get_db
-from app.core.rate_limit import login_rate_limiter
 from app.core.security import hash_password
 from app.models.assignment import TrainerAssignment
 from app.models.exercise import Exercise
@@ -28,15 +27,6 @@ def db_session():
         yield db
     finally:
         db.close()
-
-
-@pytest.fixture(autouse=True)
-def clear_login_rate_limiter():
-    login_rate_limiter._attempts.clear()
-    login_rate_limiter._lockouts.clear()
-    yield
-    login_rate_limiter._attempts.clear()
-    login_rate_limiter._lockouts.clear()
 
 
 @pytest.fixture()

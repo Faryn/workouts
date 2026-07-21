@@ -23,7 +23,7 @@ def test_exercises_returns_global_only_pool(client, seeded_user, seeded_exercise
     assert 'Other User Exercise' not in names
 
 
-def test_only_admin_can_create_global_exercises(client, seeded_user, seeded_admin):
+def test_athletes_cannot_create_global_exercises(client, seeded_user, seeded_trainer_and_assignment):
     headers = _auth(client, seeded_user.email, 'secret123')
 
     denied = client.post('/v1/exercises/', json={
@@ -33,12 +33,13 @@ def test_only_admin_can_create_global_exercises(client, seeded_user, seeded_admi
     }, headers=headers)
     assert denied.status_code == 403
 
-    admin_headers = _auth(client, seeded_admin.email, 'secret123')
+    trainer, _ = seeded_trainer_and_assignment
+    trainer_headers = _auth(client, trainer.email, 'secret123')
     created = client.post('/v1/exercises/', json={
         'name': 'Cable Lateral Raise',
         'type': 'strength',
         'notes': 'Strict form',
-    }, headers=admin_headers)
+    }, headers=trainer_headers)
     assert created.status_code == 200
     body = created.json()
     assert body['owner_scope'] == 'global'

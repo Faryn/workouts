@@ -7,3 +7,4 @@ from app.models.schedule import ScheduledWorkout
 from app.models.session import WorkoutSession, LoggedExercise, LoggedSet
 from app.models.cardio import CardioSession
 from app.models.audit import AuditEvent
+from app.models.login_rate_limit import LoginRateLimit

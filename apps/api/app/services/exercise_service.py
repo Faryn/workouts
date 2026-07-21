@@ -29,8 +29,8 @@ def create_exercise(
     equipment: str | None,
     notes: str | None,
 ) -> dict:
-    if current_user.role != "admin":
-        raise AppError(code="forbidden", message="Only admins can create global exercises", status_code=403)
+    if current_user.role == "athlete":
+        raise AppError(code="forbidden", message="Athletes cannot create global exercises", status_code=403)
     validate_exercise_type(exercise_type)
 
     row = Exercise(

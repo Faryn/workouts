@@ -16,7 +16,7 @@ export function useSessionAutosave(params: {
     version?: number | null
   }>
   setSession: React.Dispatch<React.SetStateAction<SessionDetail | null>>
-  onConflict: (sessionId: string) => Promise<void>
+  onConflict: (sessionId: string) => Promise<SessionDetail | null>
   onNotice: (message: string) => void
 }) {
   const { session, sessionNotes, autosaveSession, setSession, onConflict, onNotice } = params
@@ -83,8 +83,16 @@ export function useSessionAutosave(params: {
       }
       setAutosaveState('error')
       if (e instanceof ApiError && e.code === 'session_conflict' && active.id) {
-        await onConflict(active.id)
-        onNotice('Session changed elsewhere. Reloaded latest version.')
+        const latest = await onConflict(active.id)
+        // A set write on this same device can win the race against a notes
+        // autosave. If the notes are already present, there is nothing for
+        // the athlete to resolve and showing a cross-device warning is noisy.
+        if (latest?.notes === notesRef.current) {
+          lastAutosavedNotesRef.current = latest.notes ?? ''
+          setAutosaveState('ok')
+          return
+        }
+        onNotice('Session notes changed elsewhere. Reloaded the latest version.')
       }
     } finally {
       autosaveInFlightRef.current = false

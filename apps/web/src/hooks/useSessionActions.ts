@@ -30,7 +30,7 @@ export function useSessionActions(params: {
   clearDraftState: () => void
   clearBackup: () => void
   loadAll: () => Promise<void>
-  reloadLatestSession: (sessionId: string) => Promise<void>
+  reloadLatestSession: (sessionId: string) => Promise<SessionDetail | null>
   autosaveCurrent: (reason: 'interval' | 'visibility' | 'pagehide' | 'notes') => Promise<void>
   setErr: (message: string | null) => void
   setCompletionSummary: (summary: SessionCompletionSummary | null) => void
@@ -118,15 +118,17 @@ export function useSessionActions(params: {
     const actualReps = draft.actual_reps === '' ? null : Number(draft.actual_reps)
 
     try {
-      try {
-        const logged = await api.logSet(token, session.id, {
+      const submit = (sessionVersion: number) => api.logSet(token, session.id, {
           logged_exercise_id: loggedExerciseId,
           set_number: setNumber,
           actual_weight: actualWeight,
           actual_reps: actualReps,
           status,
-          session_version: session.version,
+          session_version: sessionVersion,
         })
+
+      try {
+        const logged = await submit(session.version)
         setSession(prev => prev ? {
           ...prev,
           version: logged.session_version ?? prev.version,
@@ -135,20 +137,41 @@ export function useSessionActions(params: {
       } catch (e) {
         if (isUnauthorizedError(e)) return
         if (e instanceof ApiError && e.code === 'session_conflict') {
-          await reloadLatestSession(session.id)
-          onNotice('Session changed elsewhere. Reloaded latest version before continuing.')
-          return
+          const latest = await reloadLatestSession(session.id)
+          const latestSet = latest?.logged_exercises
+            .find(exercise => exercise.id === loggedExerciseId)
+            ?.sets.find(item => item.set_number === setNumber)
+          // Retry only if the target set remains untouched. A simultaneous
+          // notes autosave or write to another set is safe to merge; a change
+          // to this exact set still requires user review.
+          if (latest?.status === 'in_progress' && latestSet?.status === 'pending') {
+            try {
+              const logged = await submit(latest.version)
+              setSession(prev => prev ? {
+                ...prev,
+                version: logged.session_version ?? prev.version,
+                last_saved_at: logged.last_saved_at ?? prev.last_saved_at,
+              } : prev)
+            } catch (retryError) {
+              if (isUnauthorizedError(retryError)) return
+              setErr(errorMessage(retryError))
+              return
+            }
+          } else {
+            onNotice('This set changed elsewhere. Reloaded the latest version before continuing.')
+            return
+          }
+        } else {
+          enqueuePendingLog({
+            session_id: session.id,
+            logged_exercise_id: loggedExerciseId,
+            set_number: setNumber,
+            actual_weight: actualWeight,
+            actual_reps: actualReps,
+            status,
+          })
+          onNotice('Offline: set saved locally and will sync when back online.')
         }
-
-        enqueuePendingLog({
-          session_id: session.id,
-          logged_exercise_id: loggedExerciseId,
-          set_number: setNumber,
-          actual_weight: actualWeight,
-          actual_reps: actualReps,
-          status,
-        })
-        onNotice('Offline: set saved locally and will sync when back online.')
       }
 
       const nextKey = goNext ? nextSetKey(session, loggedExerciseId, setNumber) : null

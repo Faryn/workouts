@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from collections import deque
 from dataclasses import dataclass
-from threading import Lock
+import json
 from time import time
+
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.errors import AppError
+from app.models.login_rate_limit import LoginRateLimit
 
 
 @dataclass(frozen=True)
@@ -19,51 +21,47 @@ class RateLimitConfig:
 class LoginRateLimiter:
     def __init__(self, config: RateLimitConfig | None = None):
         self.config = config or RateLimitConfig()
-        self._lock = Lock()
-        self._attempts: dict[str, deque[float]] = {}
-        self._lockouts: dict[str, float] = {}
-
-    def _prune(self, key: str, now: float) -> deque[float]:
+    def _prune(self, attempts: list[float], now: float) -> list[float]:
         window_start = now - self.config.window_seconds
-        attempts = self._attempts.get(key, deque())
-        while attempts and attempts[0] < window_start:
-            attempts.popleft()
+        return [attempt for attempt in attempts if attempt >= window_start]
+
+    def check(self, db: Session, key: str) -> None:
+        now = time()
+        row = db.get(LoginRateLimit, key)
+        if not row:
+            return
+        if row.locked_until and row.locked_until > now:
+            retry_after = max(1, int(row.locked_until - now))
+            raise AppError(
+                code='rate_limited',
+                message='Too many login attempts. Try again later.',
+                status_code=429,
+                details={'retry_after_seconds': retry_after},
+            )
+        attempts = self._prune(json.loads(row.attempts_json), now)
         if attempts:
-            self._attempts[key] = attempts
+            row.attempts_json = json.dumps(attempts)
+            row.locked_until = None
         else:
-            self._attempts.pop(key, None)
-        return attempts
+            db.delete(row)
 
-    def check(self, key: str) -> None:
+    def register_failure(self, db: Session, key: str) -> None:
         now = time()
-        with self._lock:
-            until = self._lockouts.get(key)
-            if until and until > now:
-                retry_after = max(1, int(until - now))
-                raise AppError(
-                    code='rate_limited',
-                    message='Too many login attempts. Try again later.',
-                    status_code=429,
-                    details={'retry_after_seconds': retry_after},
-                )
-            if until and until <= now:
-                self._lockouts.pop(key, None)
-            self._prune(key, now)
+        row = db.get(LoginRateLimit, key) or LoginRateLimit(key=key, attempts_json="[]")
+        attempts = self._prune(json.loads(row.attempts_json), now)
+        attempts.append(now)
+        row.attempts_json = json.dumps(attempts)
+        if len(attempts) >= self.config.attempts:
+            row.locked_until = now + self.config.lockout_seconds
+            row.attempts_json = "[]"
+        db.add(row)
+        db.commit()
 
-    def register_failure(self, key: str) -> None:
-        now = time()
-        with self._lock:
-            attempts = self._prune(key, now)
-            attempts.append(now)
-            self._attempts[key] = attempts
-            if len(attempts) >= self.config.attempts:
-                self._lockouts[key] = now + self.config.lockout_seconds
-                self._attempts.pop(key, None)
-
-    def register_success(self, key: str) -> None:
-        with self._lock:
-            self._attempts.pop(key, None)
-            self._lockouts.pop(key, None)
+    def register_success(self, db: Session, key: str) -> None:
+        row = db.get(LoginRateLimit, key)
+        if row:
+            db.delete(row)
+            db.commit()
 
 
 login_rate_limiter = LoginRateLimiter(

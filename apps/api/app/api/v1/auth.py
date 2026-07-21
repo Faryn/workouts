@@ -27,16 +27,16 @@ def login(payload: LoginRequest, request: Request, response: Response, db: Sessi
     # supplied by the caller as the rate-limit identity.
     client_ip = request.headers.get('x-forwarded-for') or (request.client.host if request.client else 'unknown')
     rate_limit_key = f"{normalized_email}:{client_ip}"
-    login_rate_limiter.check(rate_limit_key)
+    login_rate_limiter.check(db, rate_limit_key)
 
     try:
         result = auth_service.issue_login_token(db, payload.email, payload.password, payload.athlete_ids)
     except AppError as exc:
         if exc.status_code == 401 and exc.code == 'invalid_credentials':
-            login_rate_limiter.register_failure(rate_limit_key)
+            login_rate_limiter.register_failure(db, rate_limit_key)
         raise
 
-    login_rate_limiter.register_success(rate_limit_key)
+    login_rate_limiter.register_success(db, rate_limit_key)
     set_auth_cookie(response, result['access_token'])
     return result
 
