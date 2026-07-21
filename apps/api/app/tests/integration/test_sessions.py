@@ -89,6 +89,32 @@ def test_untouched_pending_sets_do_not_count_as_done(client, seeded_user, db_ses
     assert statuses == ['pending', 'pending']
 
 
+def test_session_start_rejects_another_athletes_private_template(client, seeded_user, db_session):
+    from app.core.security import hash_password
+    from app.models.exercise import Exercise
+    from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
+    from app.models.user import User
+
+    other = User(email='other@example.com', password_hash=hash_password('secret123'), role='athlete', active=True)
+    ex = Exercise(name='Private Lift', type='strength', owner_scope='global')
+    db_session.add_all([other, ex]); db_session.commit(); db_session.refresh(other); db_session.refresh(ex)
+    private_template = WorkoutTemplate(owner_id=other.id, name='Private Program')
+    db_session.add(private_template); db_session.commit(); db_session.refresh(private_template)
+    db_session.add(WorkoutTemplateExercise(
+        template_id=private_template.id,
+        exercise_id=ex.id,
+        sort_order=1,
+        planned_sets=1,
+        planned_reps=5,
+    ))
+    db_session.commit()
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    response = client.post('/v1/sessions/start', json={'template_id': private_template.id}, headers=headers)
+    assert response.status_code == 404
+    assert response.json()['error']['code'] == 'template_not_found'
+
+
 def test_duplicate_session_start_blocks_new_session_when_other_in_progress_exists(client, seeded_user, db_session):
     from app.models.exercise import Exercise
     from app.models.template import WorkoutTemplate, WorkoutTemplateExercise

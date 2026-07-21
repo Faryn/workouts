@@ -1,11 +1,23 @@
 import csv
 import io
+from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.models.cardio import CardioSession
 from app.models.exercise import Exercise
 from app.models.session import LoggedExercise, LoggedSet, WorkoutSession
+
+
+def _csv_value(value: object) -> object:
+    """Prevent spreadsheet applications from treating user data as a formula."""
+    if isinstance(value, str) and value.startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
+
+
+def _write_row(writer: Any, values: list[object]) -> None:
+    writer.writerow([_csv_value(value) for value in values])
 
 
 def sessions_csv(db: Session, athlete_id: str) -> str:
@@ -55,7 +67,7 @@ def sessions_csv(db: Session, athlete_id: str) -> str:
         'set_notes',
     ])
     for r in rows:
-        writer.writerow(list(r))
+        _write_row(writer, list(r))
     return buffer.getvalue()
 
 
@@ -97,7 +109,7 @@ def exercise_history_csv(db: Session, athlete_id: str, exercise_id: str | None =
     ])
     for r in rows:
         date_str = r[0].date().isoformat() if r[0] else None
-        writer.writerow([date_str, *list(r[1:])])
+        _write_row(writer, [date_str, *list(r[1:])])
     return buffer.getvalue()
 
 
@@ -113,5 +125,5 @@ def cardio_csv(db: Session, athlete_id: str) -> str:
     writer = csv.writer(buffer)
     writer.writerow(['id', 'athlete_id', 'date', 'type', 'duration_seconds', 'distance', 'notes'])
     for r in rows:
-        writer.writerow([r.id, r.athlete_id, r.date.isoformat(), r.type, r.duration_seconds, r.distance, r.notes])
+        _write_row(writer, [r.id, r.athlete_id, r.date.isoformat(), r.type, r.duration_seconds, r.distance, r.notes])
     return buffer.getvalue()

@@ -29,6 +29,23 @@ def can_manage_template(db: Session, user: User, template: WorkoutTemplate) -> b
     return False
 
 
+def can_use_template_for_athlete(db: Session, template: WorkoutTemplate, athlete_id: str) -> bool:
+    """Return whether a program is visible in an athlete's program context."""
+    if template.owner_id == athlete_id:
+        return True
+    return is_assigned_trainer_for_athlete(db, template.owner_id, athlete_id)
+
+
+def ensure_template_usable_by_athlete(
+    db: Session,
+    template: WorkoutTemplate,
+    athlete_id: str,
+) -> None:
+    if not can_use_template_for_athlete(db, template, athlete_id):
+        # Do not reveal whether an inaccessible program exists.
+        raise AppError(code="template_not_found", message="Template not found", status_code=404)
+
+
 def is_exercise_visible_to_user(
     db: Session,
     exercise: Exercise,

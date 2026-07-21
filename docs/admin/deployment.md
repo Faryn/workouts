@@ -4,6 +4,15 @@
 - Docker Compose deployment (`infra/docker-compose.yml`)
 - External reverse proxy terminates TLS
 - API runs as single instance against SQLite
+- The web container binds only to `127.0.0.1:8088`; the external proxy is the
+  sole public entrypoint. Do not widen this bind without equivalent firewall
+  and proxy-header controls.
+
+## Proxy headers and login throttling
+The public reverse proxy must overwrite—not append—`X-Forwarded-For` with its
+actual peer address, as shown in `infra/nginx-example.conf`. This prevents a
+caller from choosing the IP identity used by the login throttle. The web
+container forwards the sanitized address to the API.
 
 ## SQLite guardrails
 The API enables these pragmas on connect (see `apps/api/app/core/db.py`):

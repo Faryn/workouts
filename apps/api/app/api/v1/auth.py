@@ -23,7 +23,9 @@ class LoginRequest(BaseModel):
 @router.post('/login')
 def login(payload: LoginRequest, request: Request, response: Response, db: Session = Depends(get_db)):
     normalized_email = normalize_email(payload.email)
-    client_ip = request.headers.get('x-forwarded-for', request.client.host if request.client else 'unknown').split(',')[0].strip()
+    # nginx overwrites this header at the public edge; never accept a chain
+    # supplied by the caller as the rate-limit identity.
+    client_ip = request.headers.get('x-forwarded-for') or (request.client.host if request.client else 'unknown')
     rate_limit_key = f"{normalized_email}:{client_ip}"
     login_rate_limiter.check(rate_limit_key)
 

@@ -23,14 +23,22 @@ def test_exercises_returns_global_only_pool(client, seeded_user, seeded_exercise
     assert 'Other User Exercise' not in names
 
 
-def test_any_user_created_exercise_becomes_global(client, seeded_user):
+def test_only_admin_can_create_global_exercises(client, seeded_user, seeded_admin):
     headers = _auth(client, seeded_user.email, 'secret123')
 
-    created = client.post('/v1/exercises/', json={
+    denied = client.post('/v1/exercises/', json={
         'name': 'Cable Lateral Raise',
         'type': 'strength',
         'notes': 'Strict form',
     }, headers=headers)
+    assert denied.status_code == 403
+
+    admin_headers = _auth(client, seeded_admin.email, 'secret123')
+    created = client.post('/v1/exercises/', json={
+        'name': 'Cable Lateral Raise',
+        'type': 'strength',
+        'notes': 'Strict form',
+    }, headers=admin_headers)
     assert created.status_code == 200
     body = created.json()
     assert body['owner_scope'] == 'global'

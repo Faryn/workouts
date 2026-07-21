@@ -174,6 +174,28 @@ def test_schedule_denies_other_athlete_write(client, seeded_user, db_session):
     assert denied.status_code == 403
 
 
+def test_schedule_rejects_another_athletes_template(client, seeded_user, db_session):
+    from app.core.security import hash_password
+    from app.models.template import WorkoutTemplate
+    from app.models.user import User
+
+    other = User(email='other@example.com', password_hash=hash_password('secret123'), role='athlete', active=True)
+    db_session.add(other)
+    db_session.commit(); db_session.refresh(other)
+    private_template = WorkoutTemplate(owner_id=other.id, name='Private program')
+    db_session.add(private_template)
+    db_session.commit(); db_session.refresh(private_template)
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    response = client.post('/v1/scheduled-workouts/', json={
+        'athlete_id': seeded_user.id,
+        'template_id': private_template.id,
+        'date': '2026-03-05',
+    }, headers=headers)
+    assert response.status_code == 404
+    assert response.json()['error']['code'] == 'template_not_found'
+
+
 def test_schedule_pattern_interval_and_weekday(client, seeded_user):
     headers = _auth(client, seeded_user.email, 'secret123')
     t = client.post('/v1/templates/', json={'name': 'Pattern A'}, headers=headers).json()
@@ -201,6 +223,22 @@ def test_schedule_pattern_interval_and_weekday(client, seeded_user):
     assert weekday.status_code == 200
     weekday_dates = [x['date'] for x in weekday.json()]
     assert weekday_dates == ['2026-03-03', '2026-03-10', '2026-03-17']
+
+
+def test_schedule_rejects_unbounded_pattern_range(client, seeded_user):
+    headers = _auth(client, seeded_user.email, 'secret123')
+    template = client.post('/v1/templates/', json={'name': 'Bounded Pattern'}, headers=headers).json()
+
+    response = client.post('/v1/scheduled-workouts/pattern', json={
+        'athlete_id': seeded_user.id,
+        'template_id': template['id'],
+        'start_date': '2026-01-01',
+        'end_date': '2030-01-01',
+        'pattern_type': 'interval_days',
+        'interval_days': 1,
+    }, headers=headers)
+    assert response.status_code == 400
+    assert response.json()['error']['code'] == 'schedule_range_too_large'
 
 
 

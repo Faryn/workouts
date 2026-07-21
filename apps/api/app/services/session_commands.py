@@ -6,10 +6,11 @@ from sqlalchemy.orm import Session
 from app.core.errors import AppError
 from app.models.schedule import ScheduledWorkout
 from app.models.session import LoggedExercise, LoggedSet
-from app.models.template import WorkoutTemplateExercise
+from app.models.template import WorkoutTemplate, WorkoutTemplateExercise
 from app.models.user import User
 from app.repositories import session_repo
 from app.services.session_serializers import serialize_session, serialize_set
+from app.services.template_policy import ensure_template_usable_by_athlete
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,11 @@ def start_session(db: Session, current_user: User, scheduled_workout_id: str | N
         if scheduled.athlete_id != current_user.id:
             raise AppError(code="forbidden", message="Forbidden", status_code=403)
         chosen_template_id = scheduled.template_id
+
+    template = db.get(WorkoutTemplate, chosen_template_id)
+    if not template:
+        raise AppError(code="template_not_found", message="Template not found", status_code=404)
+    ensure_template_usable_by_athlete(db, template, current_user.id)
 
     existing = session_repo.latest_in_progress_by_athlete(db, current_user.id)
     if existing:

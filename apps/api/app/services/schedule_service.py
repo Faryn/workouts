@@ -9,6 +9,7 @@ from app.models.user import User
 from app.repositories import schedule_repo
 from app.services import calendar_service
 from app.services.schedule_policy import ensure_schedule_access, get_authorized_scheduled
+from app.services.template_policy import ensure_template_usable_by_athlete
 from app.services.schedule_serializers import serialize_scheduled
 
 WEEKDAY_MAP = {
@@ -20,6 +21,8 @@ WEEKDAY_MAP = {
     'saturday': 5,
     'sunday': 6,
 }
+MAX_SCHEDULE_RANGE_DAYS = 366
+MAX_PATTERN_OCCURRENCES = 366
 
 
 def list_scheduled(db: Session, current_user: User, athlete_id: str) -> list[dict]:
@@ -46,6 +49,7 @@ def create_scheduled(
     template = db.get(WorkoutTemplate, template_id)
     if not template:
         raise AppError(code='template_not_found', message='Template not found', status_code=404)
+    ensure_template_usable_by_athlete(db, template, athlete_id)
     row = schedule_repo.create(db, athlete_id, template_id, on_date)
     return serialize_scheduled(row)
 
@@ -100,15 +104,24 @@ def create_scheduled_pattern(
     template = db.get(WorkoutTemplate, template_id)
     if not template:
         raise AppError(code='template_not_found', message='Template not found', status_code=404)
+    ensure_template_usable_by_athlete(db, template, athlete_id)
     if end_date < start_date:
-        return []
+        raise AppError(code='invalid_date_range', message='end_date must be on or after start_date', status_code=400)
+    if (end_date - start_date).days > MAX_SCHEDULE_RANGE_DAYS:
+        raise AppError(
+            code='schedule_range_too_large',
+            message=f'Schedule range cannot exceed {MAX_SCHEDULE_RANGE_DAYS} days',
+            status_code=400,
+        )
 
-    out = []
+    out: list[dict] = []
     if pattern_type == 'interval_days':
         if not interval_days or interval_days < 1:
             return []
         d = start_date
         while d <= end_date:
+            if len(out) >= MAX_PATTERN_OCCURRENCES:
+                raise AppError(code='schedule_pattern_too_large', message='Schedule pattern creates too many workouts', status_code=400)
             out.append(serialize_scheduled(schedule_repo.create(db, athlete_id, template_id, d)))
             d = d + timedelta(days=interval_days)
         return out
@@ -122,6 +135,8 @@ def create_scheduled_pattern(
         d = start_date
         while d <= end_date:
             if d.weekday() == target:
+                if len(out) >= MAX_PATTERN_OCCURRENCES:
+                    raise AppError(code='schedule_pattern_too_large', message='Schedule pattern creates too many workouts', status_code=400)
                 out.append(serialize_scheduled(schedule_repo.create(db, athlete_id, template_id, d)))
             d = d + timedelta(days=1)
         return out
@@ -134,6 +149,12 @@ def _get_bulk_scope(db: Session, current_user: User, athlete_id: str, from_date:
     ensure_schedule_access(db, current_user, athlete_id)
     if to_date < from_date:
         raise AppError(code='invalid_date_range', message='to_date must be on or after from_date', status_code=400)
+    if (to_date - from_date).days > MAX_SCHEDULE_RANGE_DAYS:
+        raise AppError(
+            code='schedule_range_too_large',
+            message=f'Schedule range cannot exceed {MAX_SCHEDULE_RANGE_DAYS} days',
+            status_code=400,
+        )
     return schedule_repo.list_planned_in_range(db, athlete_id, from_date, to_date)
 
 
@@ -189,6 +210,7 @@ def bulk_replace_template_scheduled(
     template = db.get(WorkoutTemplate, template_id)
     if not template:
         raise AppError(code='template_not_found', message='Template not found', status_code=404)
+    ensure_template_usable_by_athlete(db, template, athlete_id)
 
     created_rows: list[ScheduledWorkout] = []
     for row in rows:

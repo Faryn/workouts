@@ -128,3 +128,22 @@ def test_exports_csv_endpoints(client, seeded_user, db_session):
     c_csv = client.get(f'/v1/exports/cardio.csv?athlete_id={seeded_user.id}', headers=headers)
     assert c_csv.status_code == 200
     assert 'duration_seconds' in c_csv.text
+
+
+def test_csv_exports_neutralize_spreadsheet_formulas(client, seeded_user, db_session):
+    from app.models.cardio import CardioSession
+
+    db_session.add(CardioSession(
+        athlete_id=seeded_user.id,
+        date=date(2026, 3, 10),
+        type='walking',
+        duration_seconds=1200,
+        distance=None,
+        notes='@formula',
+    ))
+    db_session.commit()
+
+    headers = _auth(client, seeded_user.email, 'secret123')
+    response = client.get(f'/v1/exports/cardio.csv?athlete_id={seeded_user.id}', headers=headers)
+    assert response.status_code == 200
+    assert "'@formula" in response.text
