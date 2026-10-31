@@ -19,16 +19,19 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
   }
 
   return (
-    <div className="container">
-      <div className="card" style={{ maxWidth: 420, margin: '80px auto' }}>
-        <h2>Workout App Login</h2>
+    <main className="login-shell">
+      <section className="login-card" aria-labelledby="login-title">
+        <div className="login-mark" aria-hidden="true"><span /></div>
+        <p className="login-overline">Workout app</p>
+        <h1 id="login-title">Train with intent.</h1>
+        <p className="login-intro">Your programs, sessions, and progress—kept in one focused place.</p>
         <form onSubmit={submit} className="row" style={{ flexDirection: 'column' }}>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" autoComplete="username" />
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" autoComplete="current-password" />
-          <button type="submit">Login</button>
+          <label className="login-field"><span>Email</span><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="username" /></label>
+          <label className="login-field"><span>Password</span><input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password" autoComplete="current-password" /></label>
+          <button className="primary login-submit" type="submit">Log in</button>
         </form>
-        {error && <p style={{ color: '#fca5a5' }}>{error}</p>}
-      </div>
-    </div>
+        {error && <p className="form-error" role="alert">{error}</p>}
+      </section>
+    </main>
   )
 }
