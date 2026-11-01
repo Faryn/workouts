@@ -10,8 +10,8 @@ test('trainer happy path: dashboard export + scheduling tools load on dashboard'
   }
 
   await page.route('**://api.test/v1/auth/login', async route => fulfillJson(route, { access_token: 'fake-token', token_type: 'bearer' }, 'POST,OPTIONS'))
-  await page.route('**://api.test/v1/auth/me', async route => fulfillJson(route, { id: 'trainer-1', email: 'trainer@example.com', role: 'trainer' }))
-  await page.route('**://api.test/v1/auth/assigned-athletes', async route => fulfillJson(route, [{ id: 'athlete-1', email: 'athlete@example.com' }]))
+  await page.route('**://api.test/v1/auth/me**', async route => fulfillJson(route, { id: 'trainer-1', email: 'trainer@example.com', role: 'trainer' }))
+  await page.route('**://api.test/v1/auth/assigned-athletes**', async route => fulfillJson(route, [{ id: 'athlete-1', email: 'athlete@example.com' }]))
 
   await page.route('**://api.test/v1/scheduled-workouts/calendar**', async route => fulfillJson(route, [
     { kind: 'strength', id: 'sw-1', date: '2026-03-10', status: 'planned', template_id: 'tpl-1', template_name: 'Upper A' },
@@ -35,8 +35,6 @@ test('trainer happy path: dashboard export + scheduling tools load on dashboard'
   })
 
   await page.goto('/')
-  await page.getByRole('button', { name: 'Login' }).click()
-
   await expect(page.getByText('Keep training on track.')).toBeVisible()
   await expect(page.getByText('Viewing athlete@example.com')).toBeVisible()
   await expect(page.getByLabel('Selected athlete')).toBeVisible()

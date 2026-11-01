@@ -22,8 +22,8 @@ async function fulfillJson(route: any, body: unknown, methods = 'GET,POST,PATCH,
 
 test('trainer: no Gym nav, /sessions redirects, mixed-owner templates show names', async ({ page }) => {
   await page.route('**://api.test/v1/auth/login', async route => fulfillJson(route, { access_token: 't', token_type: 'bearer' }, 'POST,OPTIONS'))
-  await page.route('**://api.test/v1/auth/me', async route => fulfillJson(route, { id: 'trainer-1', email: 'trainer@example.com', role: 'trainer' }))
-  await page.route('**://api.test/v1/auth/assigned-athletes', async route => fulfillJson(route, [{ id: 'athlete-1', email: 'athlete@example.com' }]))
+  await page.route('**://api.test/v1/auth/me**', async route => fulfillJson(route, { id: 'trainer-1', email: 'trainer@example.com', role: 'trainer' }))
+  await page.route('**://api.test/v1/auth/assigned-athletes**', async route => fulfillJson(route, [{ id: 'athlete-1', email: 'athlete@example.com' }]))
 
   await page.route('**://api.test/v1/scheduled-workouts/calendar**', async route => fulfillJson(route, []))
   await page.route('**://api.test/v1/scheduled-workouts/?**', async route => fulfillJson(route, []))
@@ -56,8 +56,6 @@ test('trainer: no Gym nav, /sessions redirects, mixed-owner templates show names
   ]))
 
   await page.goto('/')
-  await page.getByRole('button', { name: 'Login' }).click()
-
   await expect(page.getByRole('link', { name: 'Train' })).toHaveCount(0)
 
   await page.getByRole('link', { name: 'Programs' }).click()
@@ -70,8 +68,8 @@ test('trainer: no Gym nav, /sessions redirects, mixed-owner templates show names
 
 test('athlete: trainer-owned template appears with exercise_name fallback', async ({ page }) => {
   await page.route('**://api.test/v1/auth/login', async route => fulfillJson(route, { access_token: 'a', token_type: 'bearer' }, 'POST,OPTIONS'))
-  await page.route('**://api.test/v1/auth/me', async route => fulfillJson(route, { id: 'athlete-1', email: 'athlete@example.com', role: 'athlete' }))
-  await page.route('**://api.test/v1/auth/assigned-athletes', async route => fulfillJson(route, [{ id: 'athlete-1', email: 'athlete@example.com' }]))
+  await page.route('**://api.test/v1/auth/me**', async route => fulfillJson(route, { id: 'athlete-1', email: 'athlete@example.com', role: 'athlete' }))
+  await page.route('**://api.test/v1/auth/assigned-athletes**', async route => fulfillJson(route, [{ id: 'athlete-1', email: 'athlete@example.com' }]))
 
   await page.route('**://api.test/v1/scheduled-workouts/calendar**', async route => fulfillJson(route, []))
   await page.route('**://api.test/v1/exercises/**', async route => fulfillJson(route, []))
@@ -99,7 +97,6 @@ test('athlete: trainer-owned template appears with exercise_name fallback', asyn
   ]))
 
   await page.goto('/')
-  await page.getByRole('button', { name: 'Login' }).click()
   await page.getByRole('link', { name: 'Programs' }).click()
 
   await expect(page.getByText('Trainer Program A')).toBeVisible()

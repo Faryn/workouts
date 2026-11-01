@@ -28,7 +28,7 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
         <form onSubmit={submit} className="row" style={{ flexDirection: 'column' }}>
           <label className="login-field"><span>Email</span><input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="username" /></label>
           <label className="login-field"><span>Password</span><input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password" autoComplete="current-password" /></label>
-          <button className="primary login-submit" type="submit">Log in</button>
+          <button className="primary login-submit" type="submit">Login</button>
         </form>
         {error && <p className="form-error" role="alert">{error}</p>}
       </section>

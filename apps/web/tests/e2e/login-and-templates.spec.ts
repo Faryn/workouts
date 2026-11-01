@@ -22,7 +22,7 @@ test.beforeEach(async ({ page }) => {
     })
   })
 
-  await page.route('**://api.test/v1/auth/me', async (route) => {
+  await page.route('**://api.test/v1/auth/me**', async (route) => {
     if (route.request().method() === 'OPTIONS') {
       await route.fulfill({
         status: 204,
@@ -43,7 +43,7 @@ test.beforeEach(async ({ page }) => {
     })
   })
 
-  await page.route('**://api.test/v1/auth/assigned-athletes', async (route) => {
+  await page.route('**://api.test/v1/auth/assigned-athletes**', async (route) => {
     if (route.request().method() === 'OPTIONS') {
       await route.fulfill({
         status: 204,
@@ -106,7 +106,6 @@ test.beforeEach(async ({ page }) => {
 
 test('login renders dashboard', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Login' }).click()
   await expect(page.getByText('Keep training on track.')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Programs' })).toBeVisible()
 })
@@ -174,7 +173,6 @@ test('template create and delete flow in UI', async ({ page }) => {
   })
 
   await page.goto('/')
-  await page.getByRole('button', { name: 'Login' }).click()
   await page.getByRole('link', { name: 'Programs' }).click()
 
   await expect(page.getByText('Upper A')).toBeVisible()

@@ -14,8 +14,8 @@ test('admin can open Users view and create user in GUI', async ({ page }) => {
   }
 
   await page.route('**://api.test/v1/auth/login', async route => fulfillJson(route, { access_token: 'admin-token', token_type: 'bearer' }, 'POST,OPTIONS'))
-  await page.route('**://api.test/v1/auth/me', async route => fulfillJson(route, { id: 'admin-1', email: 'admin@example.com', role: 'admin' }))
-  await page.route('**://api.test/v1/auth/assigned-athletes', async route => fulfillJson(route, [{ id: 'athlete-1', email: 'athlete@example.com' }]))
+  await page.route('**://api.test/v1/auth/me**', async route => fulfillJson(route, { id: 'admin-1', email: 'admin@example.com', role: 'admin' }))
+  await page.route('**://api.test/v1/auth/assigned-athletes**', async route => fulfillJson(route, [{ id: 'athlete-1', email: 'athlete@example.com' }]))
   await page.route('**://api.test/v1/scheduled-workouts/calendar**', async route => fulfillJson(route, []))
 
   await page.route('**://api.test/v1/admin/users/**', async (route) => {
@@ -48,8 +48,6 @@ test('admin can open Users view and create user in GUI', async ({ page }) => {
   })
 
   await page.goto('/')
-  await page.getByRole('button', { name: 'Login' }).click()
-
   await page.getByRole('link', { name: 'Users' }).click()
   await expect(page.getByRole('heading', { name: 'Admin · Users' })).toBeVisible()
 
