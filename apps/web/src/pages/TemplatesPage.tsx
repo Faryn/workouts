@@ -103,8 +103,7 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
     <div className="stack">
       <section className="hero-panel compact">
         <div>
-          <h1 className="hero-title">{me.role === 'athlete' && me.name ? `Build ${me.name}'s training blocks.` : 'Build repeatable training blocks.'}</h1>
-          <p className="hero-text">Create reusable workout structures, tune rest and exercise order, then schedule them from the dashboard.</p>
+          <h1 className="hero-title">Programs</h1>
         </div>
       </section>
 

@@ -36,12 +36,12 @@ test('trainer happy path: dashboard export + scheduling tools load on dashboard'
   })
 
   await page.goto('/')
-  await expect(page.getByText('Keep training on track.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
   await expect(page.getByText('Viewing athlete@example.com')).toBeVisible()
   await expect(page.getByLabel('Selected athlete')).toBeVisible()
 
   await page.getByRole('button', { name: 'Export sessions' }).click()
-  await expect(page.getByText('What’s coming up')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Upcoming workouts' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Schedule workout' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.screenshot({ path: testInfo.outputPath('dashboard-desktop.png'), fullPage: true })

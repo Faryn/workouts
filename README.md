@@ -138,6 +138,7 @@ See `docs/admin/deployment.md` for guardrails and restore verification.
 
 ## Working UI conventions
 - Visual direction: a light training logbook (warm off-white canvas, white panels, charcoal text, restrained green actions). See `DESIGN.md` for the approved direction and tokens.
+- Interface copy uses direct section names and functional guidance, without promotional taglines or redundant bylines.
 - Primary web navigation is **Dashboard / Programs / Train**.
 - The Train page should prioritize **resume / today’s workout first**, then secondary/manual start flows.
 - The in-progress workout screen should emphasize the **current set** first; navigation and the full workout map are secondary.

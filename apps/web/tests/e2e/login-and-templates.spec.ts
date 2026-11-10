@@ -106,7 +106,7 @@ test.beforeEach(async ({ page }) => {
 
 test('login renders dashboard', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByText('Keep training on track.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Programs' })).toBeVisible()
 })
 

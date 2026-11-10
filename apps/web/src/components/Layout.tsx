@@ -62,7 +62,6 @@ export function Layout({
       <aside className={`app-sidebar${mobileNavOpen ? ' mobile-open' : ''}`}>
         <div className="brand-block">
           <div className="brand-eyebrow">Workout app</div>
-          <div className="brand-title">Stronger, simpler coaching</div>
         </div>
 
         <nav className="sidebar-nav" aria-label="Primary navigation">

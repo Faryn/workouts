@@ -92,8 +92,7 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
     <div className="stack">
       <section className="hero-panel">
         <div>
-          <h1 className="hero-title">{me.role === 'athlete' && me.name ? `${me.name}, keep training on track.` : 'Keep training on track.'}</h1>
-          <p className="hero-text">See what is scheduled, jump into training, and manage your upcoming weeks from one place.</p>
+          <h1 className="hero-title">Dashboard</h1>
         </div>
         <div className="hero-actions">
           {me.role === 'athlete' && inProgress && (
@@ -116,7 +115,7 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
           <div className="card section-card">
             <div className="section-head">
               <div>
-                <h3>What’s coming up</h3>
+                <h3>Upcoming workouts</h3>
               </div>
             </div>
             <div className="stack">

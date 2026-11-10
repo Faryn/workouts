@@ -22,6 +22,7 @@ Approved by Paul on 2026-11-10: lighter, not gym-dark. Preserve Dashboard / Prog
 - Retain the existing Avenir/Segoe UI interface stack. Headings 28–36px, weight 500; figures use tabular numerals. No display-font dependency.
 - 4px spacing rhythm; 8px controls and 12px panels; quiet borders rather than shadows.
 - No gradients, glows, uppercase tracked labels, or decorative icon glyphs. Text labels are preferred; the navigation toggle uses a consistent 1.5-stroke SVG.
+- Copy is functional, not promotional: use Dashboard / Programs / Train / Log in as headings. No motivational taglines or bylines that repeat what controls already explain.
 - Current set gets larger measurement fields; completed and planned values remain distinguishable.
 - Mobile preserves section context and slide-out navigation. Weight and reps remain side by side; set rows stack status beneath the measurement column.
 - Focus, placeholder, error, selected, disabled, and reduced-motion states belong to the same light palette.

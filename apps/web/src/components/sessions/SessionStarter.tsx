@@ -44,7 +44,7 @@ export function SessionStarter(props: {
     <div className="card train-page-starter">
       <div className="section-head" style={{ marginBottom: 12 }}>
         <div>
-          <h2 style={{ marginBottom: 0 }}>Start today, not from a menu</h2>
+          <h2 style={{ marginBottom: 0 }}>Train</h2>
         </div>
       </div>
 
@@ -52,7 +52,6 @@ export function SessionStarter(props: {
         <div className="train-priority-card">
           <div>
             <h3>Resume your workout</h3>
-            <div className="small">You already have a live session. Pick that up instead of starting a duplicate.</div>
           </div>
           <button className="primary" onClick={props.onResume}>Resume workout</button>
         </div>
@@ -76,7 +75,6 @@ export function SessionStarter(props: {
         <div className="train-priority-card">
           <div>
             <h3>Start an unscheduled workout</h3>
-            <div className="small">Choose a program below if you want to train without today’s plan.</div>
           </div>
         </div>
       )}
@@ -86,7 +84,6 @@ export function SessionStarter(props: {
           <section className="train-secondary-card">
             <div>
               <h3 style={{ marginBottom: 6 }}>Other planned workouts</h3>
-              <div className="small">Use this when you want something other than the top suggestion.</div>
             </div>
             <div className="stack">
               <label className="stack" style={{ flex: 1 }}>
@@ -113,7 +110,6 @@ export function SessionStarter(props: {
         <section className="train-secondary-card">
           <div>
             <h3 style={{ marginBottom: 6 }}>Start from a program</h3>
-            <div className="small">For extra sessions, testing, or training outside the schedule.</div>
           </div>
           <div className="stack">
             <label className="stack" style={{ flex: 1 }}>
