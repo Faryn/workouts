@@ -59,6 +59,7 @@
 ## Notes
 - The web UI uses the approved light training-logbook design; this is presentation-only and does not change API contracts or session/scheduling behavior.
 - Section headings and helper copy are task-focused; promotional bylines have been removed from login, navigation, dashboard, programs and training.
+- Browser/OS dark-mode preference is supported automatically; API contracts and session behavior are unchanged.
 - Documentation distinguishes implemented vs planned to avoid capability drift.
 - Current web navigation is centered on **Dashboard / Programs / Train**.
 - On mobile, navigation uses a sticky top bar with the current section label and a left-side slide-out menu.

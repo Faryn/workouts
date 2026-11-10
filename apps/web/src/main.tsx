@@ -13,6 +13,13 @@ import { SessionsPage } from './pages/SessionsPage'
 import { TemplatesPage } from './pages/TemplatesPage'
 import './styles.css'
 
+const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+function syncBrowserTheme() {
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', systemTheme.matches ? '#181c1a' : '#f6f5f1')
+}
+syncBrowserTheme()
+systemTheme.addEventListener('change', syncBrowserTheme)
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register(`/sw.js?v=${__APP_VERSION__}`)

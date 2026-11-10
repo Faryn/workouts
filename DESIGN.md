@@ -15,6 +15,8 @@ Approved by Paul on 2026-11-10: lighter, not gym-dark. Preserve Dashboard / Prog
 
 `apps/web/src/styles.css` is the single theme source. No competing compatibility theme overrides.
 
+Light is the default and dark follows `prefers-color-scheme` automatically, including live preference changes. Dark uses neutral charcoal rather than saturated green surfaces. All surfaces, status colours, selection, placeholders, disabled controls and button text have semantic theme tokens. The browser toolbar theme colour follows the same preference. No manual theme setting or stored override.
+
 - Canvas `#f6f5f1`; panels white; supporting surface `#f2f3ef`.
 - Text `#252c28`; secondary text `#626c64`; borders `#dcded7`.
 - Primary action `#286447` with white text; hover `#22563d`.
