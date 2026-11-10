@@ -73,11 +73,11 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
 
   function dayStatusClass(dateStr: string) {
     const day = d.calendarItems.filter(x => x.date === dateStr)
-    if (day.some(x => x.kind === 'strength' && x.status === 'completed')) return '#34d399'
-    if (day.some(x => x.kind === 'strength' && x.status === 'planned')) return '#60a5fa'
-    if (day.some(x => x.kind === 'strength' && x.status === 'skipped')) return '#f59e0b'
-    if (day.some(x => x.kind === 'cardio')) return '#a78bfa'
-    return '#374151'
+    if (day.some(x => x.kind === 'strength' && x.status === 'completed')) return 'var(--success)'
+    if (day.some(x => x.kind === 'strength' && x.status === 'planned')) return 'var(--muted)'
+    if (day.some(x => x.kind === 'strength' && x.status === 'skipped')) return 'var(--warning)'
+    if (day.some(x => x.kind === 'cardio')) return 'var(--violet)'
+    return 'var(--muted)'
   }
 
   const today = iso(new Date())
@@ -92,18 +92,17 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
     <div className="stack">
       <section className="hero-panel">
         <div>
-          <div className="hero-kicker">Dashboard</div>
           <h1 className="hero-title">{me.role === 'athlete' && me.name ? `${me.name}, keep training on track.` : 'Keep training on track.'}</h1>
           <p className="hero-text">See what is scheduled, jump into training, and manage your upcoming weeks from one place.</p>
         </div>
         <div className="hero-actions">
           {me.role === 'athlete' && inProgress && (
-            <a href="/sessions"><button className="primary"><span className="button-icon">▶</span>Resume workout</button></a>
+            <a href="/sessions"><button className="primary">Resume workout</button></a>
           )}
           {me.role === 'athlete' && !inProgress && todaysPlanned && (
-            <a href={`/sessions?scheduled_id=${todaysPlanned.id}`}><button className="primary"><span className="button-icon">▶</span>Start workout</button></a>
+            <a href={`/sessions?scheduled_id=${todaysPlanned.id}`}><button className="primary">Start workout</button></a>
           )}
-          <button onClick={() => void exportSessions()}><span className="button-icon">⤓</span>Export sessions</button>
+          <button onClick={() => void exportSessions()}>Export sessions</button>
         </div>
       </section>
 
@@ -117,7 +116,6 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
           <div className="card section-card">
             <div className="section-head">
               <div>
-                <div className="section-kicker">Upcoming</div>
                 <h3>What’s coming up</h3>
               </div>
             </div>
@@ -131,7 +129,7 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
                     </div>
                     <div className="row" style={{ alignItems: 'center' }}>
                       <span className={badgeClass(item)}>{item.status}</span>
-                      {me.role === 'athlete' && item.status === 'planned' && <a className="button-link" href={`/sessions?scheduled_id=${item.id}`}><span className="button-icon">▶</span>Start workout</a>}
+                      {me.role === 'athlete' && item.status === 'planned' && <a className="button-link" href={`/sessions?scheduled_id=${item.id}`}>Start workout</a>}
                     </div>
                   </div>
                 </div>
@@ -166,16 +164,16 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
 
         <aside className="dashboard-side stack">
           <div className="card section-card">
-            <div className="section-head"><div><div className="section-kicker">Schedule</div><h3>Quick add</h3></div></div>
+            <div className="section-head"><div><h3>Quick add</h3></div></div>
             <div className="stack">
               <label className="stack"><span className="small">Program</span><select value={d.templateId} onChange={e => d.setTemplateId(e.target.value)}>{d.templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
               <label className="stack"><span className="small">Date</span><input type="date" value={d.date} onChange={e => d.setDate(e.target.value)} /></label>
-              <button className="primary" onClick={() => void d.create()} disabled={!d.templateId || !d.date}><span className="button-icon">＋</span>Schedule workout</button>
+              <button className="primary" onClick={() => void d.create()} disabled={!d.templateId || !d.date}>Schedule workout</button>
             </div>
           </div>
 
           <div className="card section-card">
-            <div className="section-head"><div><div className="section-kicker">Automation</div><h3>Scheduling tools</h3></div></div>
+            <div className="section-head"><div><h3>Scheduling tools</h3></div></div>
             <ScheduleAdvancedPanel
               templateId={d.templateId}
               patternType={d.patternType}
@@ -207,7 +205,7 @@ export function DashboardPage({ me, token, athleteId }: { me: { id: string; emai
         </aside>
       </div>
 
-      {(d.err || exportErr) && <p style={{ color: '#fca5a5' }}>{d.err ?? exportErr}</p>}
+      {(d.err || exportErr) && <p style={{ color: 'var(--danger)' }}>{d.err ?? exportErr}</p>}
     </div>
   )
 }

@@ -44,7 +44,7 @@ export function Layout({
             aria-expanded={mobileNavOpen}
             onClick={() => setMobileNavOpen(open => !open)}
           >
-            <span className="button-icon">☰</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <div>
             <div className="mobile-topbar-kicker">Workout app</div>

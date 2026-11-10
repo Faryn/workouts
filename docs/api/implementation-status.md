@@ -57,6 +57,7 @@
 - `GET /v1/exports/cardio.csv?athlete_id=...`
 
 ## Notes
+- The web UI uses the approved light training-logbook design; this is presentation-only and does not change API contracts or session/scheduling behavior.
 - Documentation distinguishes implemented vs planned to avoid capability drift.
 - Current web navigation is centered on **Dashboard / Programs / Train**.
 - On mobile, navigation uses a sticky top bar with the current section label and a left-side slide-out menu.

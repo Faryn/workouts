@@ -30,7 +30,7 @@ export function ScheduleAdvancedPanel(props: {
   const p = props
   return (
     <details className="advanced-panel" style={{ marginTop: 12 }}>
-      <summary aria-label="Toggle advanced schedule options">⚙ Advanced</summary>
+      <summary aria-label="Toggle advanced schedule options">Advanced</summary>
       <fieldset className="row" style={{ marginTop: 10, alignItems: 'center', border: 'none', padding: 0 }}>
         <legend><strong>Pattern</strong></legend>
         <label className="stack"><span className="small">Type</span><select value={p.patternType} onChange={e => p.setPatternType(e.target.value as 'interval_days' | 'weekday')}><option value="interval_days">Every N days</option><option value="weekday">Every weekday</option></select></label>

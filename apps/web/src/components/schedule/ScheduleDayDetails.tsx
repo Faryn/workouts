@@ -37,7 +37,7 @@ export function ScheduleDayDetails(props: {
 
   return (
     <div className="card">
-      <h3>📅 {props.selectedDate}</h3>
+      <h3>{props.selectedDate}</h3>
       {props.selectedStrength.length === 0 && props.selectedCardio.length === 0 && <p className="small">No entries.</p>}
 
       {props.selectedStrength.map(it => {
@@ -47,7 +47,7 @@ export function ScheduleDayDetails(props: {
         return (
           <div key={it.id} className="history-card" style={{ marginBottom: 10 }}>
             <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <strong>🏋 {props.templateNameById[it.template_id] ?? it.template_id}</strong>
+              <strong>{props.templateNameById[it.template_id] ?? it.template_id}</strong>
               <span className={badgeClass(it.status)}>{it.status}</span>
             </div>
 
@@ -70,11 +70,11 @@ export function ScheduleDayDetails(props: {
             )}
 
             <div className="row action-row" style={{ marginTop: 8 }}>
-              {it.status === 'planned' && <a className="button-link" href={`/sessions?scheduled_id=${it.id}`}><span className="button-icon">▶</span>Start workout</a>}
-              <button onClick={() => openAction(it.id, 'move')}><span className="button-icon">↔</span>Move workout</button>
-              <button onClick={() => openAction(it.id, 'copy')}><span className="button-icon">⧉</span>Copy workout</button>
-              {it.status === 'planned' && <button onClick={() => props.onSkip(it.id)}><span className="button-icon">⏭</span>Skip workout</button>}
-              <button onClick={() => props.onDelete(it.id)}><span className="button-icon">🗑</span>Delete workout</button>
+              {it.status === 'planned' && <a className="button-link" href={`/sessions?scheduled_id=${it.id}`}>Start workout</a>}
+              <button onClick={() => openAction(it.id, 'move')}>Move workout</button>
+              <button onClick={() => openAction(it.id, 'copy')}>Copy workout</button>
+              {it.status === 'planned' && <button onClick={() => props.onSkip(it.id)}>Skip workout</button>}
+              <button onClick={() => props.onDelete(it.id)}>Delete workout</button>
             </div>
 
             {actionMode && (
@@ -93,7 +93,7 @@ export function ScheduleDayDetails(props: {
                     closeAction(it.id)
                   }}
                 >
-                  <span className="button-icon">✓</span>{actionMode === 'move' ? 'Confirm move' : 'Confirm copy'}
+                  {actionMode === 'move' ? 'Confirm move' : 'Confirm copy'}
                 </button>
                 <button className="ghost" onClick={() => closeAction(it.id)}>Cancel</button>
               </div>
@@ -106,7 +106,7 @@ export function ScheduleDayDetails(props: {
         <div key={item.id} className="history-card" style={{ marginBottom: 8 }}>
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <strong>🏃 {item.type}</strong>
+              <strong>{item.type}</strong>
               <div className="small">{item.duration_seconds}s{item.distance != null ? ` · ${item.distance} km` : ''}</div>
             </div>
             <span className="status-badge status-in_progress">cardio</span>

@@ -21,7 +21,7 @@ async function fulfillJson(route: any, body: unknown, methods = 'GET,POST,OPTION
   })
 }
 
-test('active workout prefills pending sets with planned values', async ({ page }) => {
+test('active workout prefills pending sets with planned values', async ({ page }, testInfo) => {
   const session = {
     id: 'session-1',
     athlete_id: 'athlete-1',
@@ -89,6 +89,11 @@ test('active workout prefills pending sets with planned values', async ({ page }
   await expect(page.getByText('Set 2 of 3')).toBeVisible()
   await expect(page.getByLabel('Weight')).toHaveValue('20')
   await expect(page.getByLabel('Repetitions')).toHaveValue('8')
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.getByRole('button', { name: 'Done', exact: true })).toBeInViewport()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.screenshot({ path: testInfo.outputPath('active-workout-mobile.png'), fullPage: true })
 
   const completedSet = page.getByRole('button', { name: /Set 1/ })
   await expect(completedSet).toContainText('Logged: 20 kg × 7 reps')

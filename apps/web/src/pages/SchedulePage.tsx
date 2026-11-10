@@ -11,11 +11,11 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
 
   function dayStatusClass(dateStr: string) {
     const day = d.calendarItems.filter(x => x.date === dateStr)
-    if (day.some(x => x.kind === 'strength' && x.status === 'completed')) return '#34d399'
-    if (day.some(x => x.kind === 'strength' && x.status === 'planned')) return '#60a5fa'
-    if (day.some(x => x.kind === 'strength' && x.status === 'skipped')) return '#f59e0b'
-    if (day.some(x => x.kind === 'cardio')) return '#a78bfa'
-    return '#374151'
+    if (day.some(x => x.kind === 'strength' && x.status === 'completed')) return 'var(--success)'
+    if (day.some(x => x.kind === 'strength' && x.status === 'planned')) return 'var(--muted)'
+    if (day.some(x => x.kind === 'strength' && x.status === 'skipped')) return 'var(--warning)'
+    if (day.some(x => x.kind === 'cardio')) return 'var(--violet)'
+    return 'var(--muted)'
   }
 
   function hasEvents(dateStr: string) {
@@ -140,7 +140,7 @@ export function SchedulePage({ token, athleteId }: { token: string; athleteId: s
           rangedCount={d.rangedPlannedItems().length}
         />
 
-        {d.err && <p style={{ color: '#fca5a5' }}>{d.err}</p>}
+        {d.err && <p style={{ color: 'var(--danger)' }}>{d.err}</p>}
       </div>
 
       <ScheduleWeekGrid

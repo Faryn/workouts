@@ -161,7 +161,6 @@ export function WorkoutMap(props: {
 }) {
   return (
     <div className="card">
-      <div className="section-kicker">Workout map</div>
       <h4 style={{ marginBottom: 10 }}>Jump anywhere</h4>
       {(props.session.logged_exercises ?? []).map(ex => {
         const hasActive = (ex.sets ?? []).some(st => setKey(ex.id, st.set_number) === props.activeSetKey)

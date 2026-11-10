@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-test('trainer happy path: dashboard export + scheduling tools load on dashboard', async ({ page }) => {
+test('trainer happy path: dashboard export + scheduling tools load on dashboard', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 1080 })
   async function fulfillJson(route: any, body: unknown, methods = 'GET,POST,PATCH,DELETE,OPTIONS') {
     if (route.request().method() === 'OPTIONS') {
       await route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-methods': methods, 'access-control-allow-headers': '*' } })
@@ -42,4 +43,13 @@ test('trainer happy path: dashboard export + scheduling tools load on dashboard'
   await page.getByRole('button', { name: 'Export sessions' }).click()
   await expect(page.getByText('What’s coming up')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Schedule workout' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.screenshot({ path: testInfo.outputPath('dashboard-desktop.png'), fullPage: true })
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.getByRole('button', { name: 'Open navigation' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.getByRole('button', { name: 'Open navigation' }).click()
+  await expect(page.getByRole('link', { name: 'Programs', exact: true })).toBeInViewport()
+  await page.getByRole('button', { name: 'Close navigation' }).click()
 })

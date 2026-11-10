@@ -103,20 +103,19 @@ export function TemplatesPage({ token, me, athleteId }: { token: string; me: { i
     <div className="stack">
       <section className="hero-panel compact">
         <div>
-          <div className="hero-kicker">Programs</div>
           <h1 className="hero-title">{me.role === 'athlete' && me.name ? `Build ${me.name}'s training blocks.` : 'Build repeatable training blocks.'}</h1>
           <p className="hero-text">Create reusable workout structures, tune rest and exercise order, then schedule them from the dashboard.</p>
         </div>
       </section>
 
       <div className="card section-card">
-        <div className="section-head"><div><div className="section-kicker">Create</div><h3>New program</h3></div></div>
+        <div className="section-head"><div><h3>New program</h3></div></div>
         <div className="row">
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Program name" />
           <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes" />
           <button className="primary" onClick={() => void create()} disabled={!name.trim()}>Create program</button>
         </div>
-        {err && <p style={{ color: '#fca5a5' }}>{err}</p>}
+        {err && <p style={{ color: 'var(--danger)' }}>{err}</p>}
       </div>
 
       <TemplateListCard

@@ -79,7 +79,6 @@ export function InProgressSession(props: {
       <div className="card current-set-card">
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div>
-            <div className="section-kicker">Current set</div>
             <h3 style={{ marginBottom: 6 }}>{active?.exerciseName ?? 'Workout in progress'}</h3>
             <div className="small">
               {active ? `Set ${active.setNumber} of ${active.exerciseSetCount}` : 'Keep moving. Your latest changes save automatically.'}

@@ -40,9 +40,9 @@ export function ScheduleWeekGrid(props: {
               key={ds}
               onClick={() => props.setSelectedDate(ds)}
               className={`schedule-calendar-day${isSelected ? ' selected' : ''}${isToday ? ' today' : ''}`}
-              style={{ borderColor: isSelected ? 'var(--accent)' : isToday ? 'var(--accent-2)' : props.dayStatusClass(ds) }}
+              style={{ borderColor: isSelected ? 'var(--accent)' : isToday ? 'var(--accent-2)' : 'var(--border)' }}
             >
-              <div className="schedule-calendar-day-number" style={{ fontWeight: isSelected ? 700 : 600 }}>{d.getDate()}</div>
+              <div className="schedule-calendar-day-number" style={{ fontWeight: isSelected ? 600 : 400 }}>{d.getDate()}</div>
               {props.hasEvents(ds) && (
                 <span
                   className="schedule-calendar-day-dot"

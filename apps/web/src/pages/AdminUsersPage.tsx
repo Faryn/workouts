@@ -99,7 +99,7 @@ export function AdminUsersPage({ token, me }: { token: string; me: { role: strin
             </li>
           ))}
         </ul>
-        {err && <p style={{ color: '#fca5a5' }}>{err}</p>}
+        {err && <p style={{ color: 'var(--danger)' }}>{err}</p>}
       </div>
 
       {resetForUserId && (

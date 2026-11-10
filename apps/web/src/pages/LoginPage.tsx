@@ -21,7 +21,6 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
   return (
     <main className="login-shell">
       <section className="login-card" aria-labelledby="login-title">
-        <div className="login-mark" aria-hidden="true"><span /></div>
         <p className="login-overline">Workout app</p>
         <h1 id="login-title">Train with intent.</h1>
         <p className="login-intro">Your programs, sessions, and progress—kept in one focused place.</p>
